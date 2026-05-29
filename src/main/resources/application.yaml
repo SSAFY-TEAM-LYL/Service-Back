@@ -1,3 +1,25 @@
 spring:
   application:
     name: LYL-Back
+  datasource:
+    url: jdbc:mysql://localhost:3306/lyl?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: lyl
+    password: lyl1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: Asia/Seoul
+
+server:
+  port: 8080
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-millis: 3600000

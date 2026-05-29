@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:lyl-test;MODE=MySQL;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+app:
+  jwt:
+    secret: test-development-jwt-secret-key-must-be-at-least-32-bytes
+    expiration-millis: 3600000
