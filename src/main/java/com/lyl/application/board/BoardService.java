@@ -2,8 +2,10 @@ package com.lyl.application.board;
 
 import com.lyl.domain.board.BoardPost;
 import com.lyl.domain.board.BoardPostRepository;
+import com.lyl.domain.board.exception.BoardPostNotFoundException;
 import com.lyl.domain.member.Member;
 import com.lyl.domain.member.MemberRepository;
+import com.lyl.domain.member.exception.MemberNotFoundException;
 import com.lyl.presentation.board.BoardPostCreateRequest;
 import com.lyl.presentation.board.BoardPostResponse;
 import com.lyl.presentation.board.BoardPostSummaryResponse;
@@ -29,7 +31,7 @@ public class BoardService {
     @Transactional
     public BoardPostResponse findPost(Long id) {
         BoardPost post = boardPostRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
+                .orElseThrow(BoardPostNotFoundException::new);
         post.increaseViewCount();
         return BoardPostResponse.from(post);
     }
@@ -37,7 +39,7 @@ public class BoardService {
     @Transactional
     public BoardPostResponse createPost(BoardPostCreateRequest request, Long authorId) {
         Member author = memberRepository.findById(authorId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(MemberNotFoundException::new);
         BoardPost post = new BoardPost(request.title(), request.content(), author);
         BoardPost savedPost = boardPostRepository.save(post);
         return BoardPostResponse.from(savedPost);

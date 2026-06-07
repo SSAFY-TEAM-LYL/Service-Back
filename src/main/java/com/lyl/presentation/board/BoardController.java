@@ -2,6 +2,7 @@ package com.lyl.presentation.board;
 
 import com.lyl.application.board.BoardService;
 import com.lyl.infrastructure.security.UserPrincipal;
+import com.lyl.presentation.common.ApiResponse;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
@@ -23,21 +24,22 @@ public class BoardController {
     private final BoardService boardService;
 
     @GetMapping
-    public ResponseEntity<List<BoardPostSummaryResponse>> findPosts() {
-        return ResponseEntity.ok(boardService.findPosts());
+    public ResponseEntity<ApiResponse<List<BoardPostSummaryResponse>>> findPosts() {
+        return ResponseEntity.ok(ApiResponse.success(boardService.findPosts()));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<BoardPostResponse> findPost(@PathVariable Long id) {
-        return ResponseEntity.ok(boardService.findPost(id));
+    public ResponseEntity<ApiResponse<BoardPostResponse>> findPost(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success(boardService.findPost(id)));
     }
 
     @PostMapping
-    public ResponseEntity<BoardPostResponse> createPost(
+    public ResponseEntity<ApiResponse<BoardPostResponse>> createPost(
             @Valid @RequestBody BoardPostCreateRequest request,
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
         BoardPostResponse response = boardService.createPost(request, userPrincipal.getId());
-        return ResponseEntity.created(URI.create("/api/boards/" + response.id())).body(response);
+        return ResponseEntity.created(URI.create("/api/boards/" + response.id()))
+                .body(ApiResponse.success(response));
     }
 }

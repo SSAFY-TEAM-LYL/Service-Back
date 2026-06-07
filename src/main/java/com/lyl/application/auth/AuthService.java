@@ -2,6 +2,7 @@ package com.lyl.application.auth;
 
 import com.lyl.domain.member.Member;
 import com.lyl.domain.member.MemberRepository;
+import com.lyl.domain.member.exception.DuplicateEmailException;
 import com.lyl.infrastructure.security.JwtTokenProvider;
 import com.lyl.infrastructure.security.UserPrincipal;
 import com.lyl.presentation.auth.AuthResponse;
@@ -28,7 +29,7 @@ public class AuthService {
     @Transactional
     public AuthResponse signup(SignupRequest request) {
         if (memberRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException("이미 가입된 이메일입니다.");
+            throw new DuplicateEmailException();
         }
 
         Member member = new Member(
