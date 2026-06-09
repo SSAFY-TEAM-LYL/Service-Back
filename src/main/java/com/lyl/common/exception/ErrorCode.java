@@ -8,6 +8,7 @@ public enum ErrorCode {
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "duplicate-email", "이미 가입된 이메일입니다."),
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "member-not-found", "사용자를 찾을 수 없습니다."),
     BOARD_POST_NOT_FOUND(HttpStatus.NOT_FOUND, "board-post-not-found", "게시글을 찾을 수 없습니다."),
+    BOARD_COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "board-comment-not-found", "댓글을 찾을 수 없습니다."),
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "invalid-credentials", "이메일 또는 비밀번호가 올바르지 않습니다."),
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "access-denied", "접근 권한이 없습니다."),
     VALIDATION_ERROR(HttpStatus.BAD_REQUEST, "validation-error", "요청 값이 올바르지 않습니다."),
