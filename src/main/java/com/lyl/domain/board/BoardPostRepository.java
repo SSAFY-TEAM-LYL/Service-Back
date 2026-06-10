@@ -10,4 +10,6 @@ public interface BoardPostRepository {
     List<BoardPost> findAllOrderByCreatedAtDesc();
 
     Optional<BoardPost> findById(Long id);
+
+    void delete(BoardPost boardPost);
 }

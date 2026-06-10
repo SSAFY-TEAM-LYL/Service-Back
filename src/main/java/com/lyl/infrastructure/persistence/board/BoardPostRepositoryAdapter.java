@@ -27,4 +27,9 @@ public class BoardPostRepositoryAdapter implements BoardPostRepository {
     public Optional<BoardPost> findById(Long id) {
         return repository.findById(id);
     }
+
+    @Override
+    public void delete(BoardPost boardPost) {
+        repository.delete(boardPost);
+    }
 }
