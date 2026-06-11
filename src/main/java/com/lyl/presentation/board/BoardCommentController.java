@@ -2,6 +2,8 @@ package com.lyl.presentation.board;
 
 import com.lyl.application.board.BoardService;
 import com.lyl.infrastructure.security.UserPrincipal;
+import com.lyl.presentation.board.dto.BoardCommentResponse;
+import com.lyl.presentation.board.dto.BoardCommentUpdateRequest;
 import com.lyl.presentation.common.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

@@ -1,4 +1,4 @@
-package com.lyl.presentation.auth;
+package com.lyl.presentation.auth.dto;
 
 import com.lyl.domain.member.Member;
 

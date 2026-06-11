@@ -2,6 +2,10 @@ package com.lyl.presentation.auth;
 
 import com.lyl.application.auth.AuthService;
 import com.lyl.infrastructure.security.UserPrincipal;
+import com.lyl.presentation.auth.dto.AuthResponse;
+import com.lyl.presentation.auth.dto.LoginRequest;
+import com.lyl.presentation.auth.dto.SignupRequest;
+import com.lyl.presentation.auth.dto.UserResponse;
 import com.lyl.presentation.common.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

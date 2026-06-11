@@ -1,4 +1,4 @@
-package com.lyl.presentation.board;
+package com.lyl.presentation.board.dto;
 
 import com.lyl.domain.board.BoardPost;
 import java.time.format.DateTimeFormatter;

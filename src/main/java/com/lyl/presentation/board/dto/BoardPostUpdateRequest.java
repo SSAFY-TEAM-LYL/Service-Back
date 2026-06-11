@@ -1,4 +1,4 @@
-package com.lyl.presentation.board;
+package com.lyl.presentation.board.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
