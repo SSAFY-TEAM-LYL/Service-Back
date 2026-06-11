@@ -9,9 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 interface SpringDataBoardCommentRepository extends JpaRepository<BoardComment, Long> {
 
     @EntityGraph(attributePaths = "author")
-    List<BoardComment> findAllByPostIdOrderByCreatedAtAsc(Long postId);
+    List<BoardComment> findAllByPostIdAndDeletedAtIsNullOrderByCreatedAtAsc(Long postId);
 
-    @Override
     @EntityGraph(attributePaths = {"author", "post"})
-    Optional<BoardComment> findById(Long id);
+    Optional<BoardComment> findByIdAndDeletedAtIsNull(Long id);
 }

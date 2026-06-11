@@ -20,16 +20,17 @@ public class BoardPostRepositoryAdapter implements BoardPostRepository {
 
     @Override
     public List<BoardPost> findAllOrderByCreatedAtDesc() {
-        return repository.findAllByOrderByCreatedAtDesc();
+        return repository.findAllByDeletedAtIsNullOrderByCreatedAtDesc();
     }
 
     @Override
     public Optional<BoardPost> findById(Long id) {
-        return repository.findById(id);
+        return repository.findByIdAndDeletedAtIsNull(id);
     }
 
     @Override
     public void delete(BoardPost boardPost) {
-        repository.delete(boardPost);
+        boardPost.delete();
+        repository.save(boardPost);
     }
 }

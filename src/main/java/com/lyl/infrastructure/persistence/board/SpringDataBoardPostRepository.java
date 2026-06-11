@@ -9,9 +9,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 interface SpringDataBoardPostRepository extends JpaRepository<BoardPost, Long> {
 
     @EntityGraph(attributePaths = "author")
-    List<BoardPost> findAllByOrderByCreatedAtDesc();
+    List<BoardPost> findAllByDeletedAtIsNullOrderByCreatedAtDesc();
 
-    @Override
     @EntityGraph(attributePaths = "author")
-    Optional<BoardPost> findById(Long id);
+    Optional<BoardPost> findByIdAndDeletedAtIsNull(Long id);
 }

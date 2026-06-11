@@ -19,16 +19,16 @@ public class MemberRepositoryAdapter implements MemberRepository {
 
     @Override
     public Optional<Member> findByEmail(String email) {
-        return repository.findByEmail(email);
+        return repository.findByEmailAndDeletedAtIsNull(email);
     }
 
     @Override
     public Optional<Member> findById(Long id) {
-        return repository.findById(id);
+        return repository.findByIdAndDeletedAtIsNull(id);
     }
 
     @Override
     public boolean existsByEmail(String email) {
-        return repository.existsByEmail(email);
+        return repository.existsByEmailAndDeletedAtIsNull(email);
     }
 }

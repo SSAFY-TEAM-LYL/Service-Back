@@ -68,6 +68,8 @@ public class BoardService {
         BoardPost post = boardPostRepository.findById(id)
                 .orElseThrow(BoardPostNotFoundException::new);
         validatePostAuthor(post, authorId);
+        boardCommentRepository.findAllByPostIdOrderByCreatedAtAsc(post.getId())
+                .forEach(BoardComment::delete);
         boardPostRepository.delete(post);
     }
 
@@ -107,7 +109,8 @@ public class BoardService {
         BoardComment comment = boardCommentRepository.findById(commentId)
                 .orElseThrow(BoardCommentNotFoundException::new);
         validateCommentAuthor(comment, authorId);
-        comment.getPost().decreaseCommentCount();
+        BoardPost post = comment.getPost();
+        post.decreaseCommentCount();
         boardCommentRepository.delete(comment);
     }
 

@@ -20,16 +20,17 @@ public class BoardCommentRepositoryAdapter implements BoardCommentRepository {
 
     @Override
     public List<BoardComment> findAllByPostIdOrderByCreatedAtAsc(Long postId) {
-        return repository.findAllByPostIdOrderByCreatedAtAsc(postId);
+        return repository.findAllByPostIdAndDeletedAtIsNullOrderByCreatedAtAsc(postId);
     }
 
     @Override
     public Optional<BoardComment> findById(Long id) {
-        return repository.findById(id);
+        return repository.findByIdAndDeletedAtIsNull(id);
     }
 
     @Override
     public void delete(BoardComment boardComment) {
-        repository.delete(boardComment);
+        boardComment.delete();
+        repository.save(boardComment);
     }
 }
