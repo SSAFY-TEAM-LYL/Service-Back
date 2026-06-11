@@ -1,5 +1,6 @@
 package com.lyl.domain.board;
 
+import com.lyl.domain.common.BaseEntity;
 import com.lyl.domain.member.Member;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -12,7 +13,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -23,7 +23,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "board_posts")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class BoardPost {
+public class BoardPost extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -48,16 +48,12 @@ public class BoardPost {
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BoardComment> comments = new ArrayList<>();
 
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
     public BoardPost(String title, String content, Member author) {
         this.title = title;
         this.content = content;
         this.author = author;
         this.viewCount = 0;
         this.commentCount = 0;
-        this.createdAt = LocalDateTime.now();
     }
 
     public void increaseViewCount() {
