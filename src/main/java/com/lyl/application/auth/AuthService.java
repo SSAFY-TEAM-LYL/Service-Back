@@ -54,7 +54,8 @@ public class AuthService {
         UserResponse user = new UserResponse(
                 userPrincipal.getId(),
                 userPrincipal.getEmail(),
-                userPrincipal.getNickname()
+                userPrincipal.getNickname(),
+                userPrincipal.getRole()
         );
         return new AuthResponse(token, user);
     }

@@ -40,7 +40,8 @@ public class AuthController {
         UserResponse response = new UserResponse(
                 userPrincipal.getId(),
                 userPrincipal.getEmail(),
-                userPrincipal.getNickname()
+                userPrincipal.getNickname(),
+                userPrincipal.getRole()
         );
         return ResponseEntity.ok(ApiResponse.success(response));
     }
