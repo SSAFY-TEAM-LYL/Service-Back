@@ -1,5 +1,6 @@
 package com.lyl.application.board;
 
+import com.lyl.domain.board.BoardCategory;
 import com.lyl.domain.board.BoardComment;
 import com.lyl.domain.board.BoardCommentRepository;
 import com.lyl.domain.board.BoardPost;
@@ -9,6 +10,7 @@ import com.lyl.domain.board.exception.BoardCommentNotFoundException;
 import com.lyl.domain.board.exception.BoardPostNotFoundException;
 import com.lyl.domain.member.Member;
 import com.lyl.domain.member.MemberRepository;
+import com.lyl.domain.member.Role;
 import com.lyl.domain.member.exception.MemberNotFoundException;
 import com.lyl.presentation.board.dto.BoardCommentCreateRequest;
 import com.lyl.presentation.board.dto.BoardCommentResponse;
@@ -31,8 +33,12 @@ public class BoardService {
     private final MemberRepository memberRepository;
 
     @Transactional(readOnly = true)
-    public List<BoardPostSummaryResponse> findPosts() {
-        return boardPostRepository.findAllOrderByCreatedAtDesc().stream()
+    public List<BoardPostSummaryResponse> findPosts(BoardCategory category) {
+        List<BoardPost> posts = category == null
+                ? boardPostRepository.findAllOrderByCreatedAtDesc()
+                : boardPostRepository.findAllByCategoryOrderByCreatedAtDesc(category);
+
+        return posts.stream()
                 .map(BoardPostSummaryResponse::from)
                 .toList();
     }
@@ -49,7 +55,8 @@ public class BoardService {
     public BoardPostResponse createPost(BoardPostCreateRequest request, Long authorId) {
         Member author = memberRepository.findById(authorId)
                 .orElseThrow(MemberNotFoundException::new);
-        BoardPost post = new BoardPost(request.title(), request.content(), author);
+        validateNoticeWritable(request.category(), author);
+        BoardPost post = new BoardPost(request.title(), request.content(), request.category(), author);
         BoardPost savedPost = boardPostRepository.save(post);
         return BoardPostResponse.from(savedPost);
     }
@@ -59,7 +66,10 @@ public class BoardService {
         BoardPost post = boardPostRepository.findById(id)
                 .orElseThrow(BoardPostNotFoundException::new);
         validatePostAuthor(post, authorId);
-        post.update(request.title(), request.content());
+        Member author = memberRepository.findById(authorId)
+                .orElseThrow(MemberNotFoundException::new);
+        validateNoticeWritable(request.category(), author);
+        post.update(request.title(), request.content(), request.category());
         return BoardPostResponse.from(post);
     }
 
@@ -116,6 +126,12 @@ public class BoardService {
 
     private void validatePostAuthor(BoardPost post, Long authorId) {
         if (!post.isWrittenBy(authorId)) {
+            throw new BoardAccessDeniedException();
+        }
+    }
+
+    private void validateNoticeWritable(BoardCategory category, Member author) {
+        if (category == BoardCategory.NOTICE && author.getRole() != Role.ADMIN) {
             throw new BoardAccessDeniedException();
         }
     }

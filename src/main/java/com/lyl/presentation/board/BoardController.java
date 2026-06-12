@@ -1,5 +1,6 @@
 package com.lyl.presentation.board;
 
+import com.lyl.domain.board.BoardCategory;
 import com.lyl.application.board.BoardService;
 import com.lyl.infrastructure.security.UserPrincipal;
 import com.lyl.presentation.board.dto.*;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -27,8 +29,10 @@ public class BoardController {
     private final BoardService boardService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<BoardPostSummaryResponse>>> findPosts() {
-        return ResponseEntity.ok(ApiResponse.success(boardService.findPosts()));
+    public ResponseEntity<ApiResponse<List<BoardPostSummaryResponse>>> findPosts(
+            @RequestParam(required = false) BoardCategory category
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(boardService.findPosts(category)));
     }
 
     @GetMapping("/{id}")

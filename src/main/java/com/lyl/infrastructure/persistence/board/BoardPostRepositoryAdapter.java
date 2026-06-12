@@ -1,6 +1,7 @@
 package com.lyl.infrastructure.persistence.board;
 
 import com.lyl.domain.board.BoardPost;
+import com.lyl.domain.board.BoardCategory;
 import com.lyl.domain.board.BoardPostRepository;
 import java.util.List;
 import java.util.Optional;
@@ -21,6 +22,11 @@ public class BoardPostRepositoryAdapter implements BoardPostRepository {
     @Override
     public List<BoardPost> findAllOrderByCreatedAtDesc() {
         return repository.findAllByDeletedAtIsNullOrderByCreatedAtDesc();
+    }
+
+    @Override
+    public List<BoardPost> findAllByCategoryOrderByCreatedAtDesc(BoardCategory category) {
+        return repository.findAllByCategoryAndDeletedAtIsNullOrderByCreatedAtDesc(category);
     }
 
     @Override

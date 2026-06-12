@@ -5,6 +5,8 @@ import com.lyl.domain.member.Member;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -35,6 +37,10 @@ public class BoardPost extends BaseEntity {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private BoardCategory category;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "member_id", nullable = false)
     private Member author;
@@ -49,8 +55,13 @@ public class BoardPost extends BaseEntity {
     private List<BoardComment> comments = new ArrayList<>();
 
     public BoardPost(String title, String content, Member author) {
+        this(title, content, BoardCategory.FREE, author);
+    }
+
+    public BoardPost(String title, String content, BoardCategory category, Member author) {
         this.title = title;
         this.content = content;
+        this.category = category;
         this.author = author;
         this.viewCount = 0;
         this.commentCount = 0;
@@ -60,9 +71,10 @@ public class BoardPost extends BaseEntity {
         this.viewCount++;
     }
 
-    public void update(String title, String content) {
+    public void update(String title, String content, BoardCategory category) {
         this.title = title;
         this.content = content;
+        this.category = category;
     }
 
     public boolean isWrittenBy(Long memberId) {
