@@ -1,5 +1,7 @@
 package com.lyl.application.board;
 
+import com.lyl.application.common.Cursor;
+import com.lyl.application.common.CursorCodec;
 import com.lyl.domain.board.BoardCategory;
 import com.lyl.domain.board.BoardComment;
 import com.lyl.domain.board.BoardCommentRepository;
@@ -19,6 +21,8 @@ import com.lyl.presentation.board.dto.BoardPostCreateRequest;
 import com.lyl.presentation.board.dto.BoardPostResponse;
 import com.lyl.presentation.board.dto.BoardPostSummaryResponse;
 import com.lyl.presentation.board.dto.BoardPostUpdateRequest;
+import com.lyl.presentation.common.CursorPageResponse;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,19 +32,35 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class BoardService {
 
+    private static final int DEFAULT_PAGE_SIZE = 10;
+    private static final int MAX_PAGE_SIZE = 50;
+
     private final BoardPostRepository boardPostRepository;
     private final BoardCommentRepository boardCommentRepository;
     private final MemberRepository memberRepository;
+    private final CursorCodec cursorCodec;
 
     @Transactional(readOnly = true)
-    public List<BoardPostSummaryResponse> findPosts(BoardCategory category) {
-        List<BoardPost> posts = category == null
-                ? boardPostRepository.findAllOrderByCreatedAtDesc()
-                : boardPostRepository.findAllByCategoryOrderByCreatedAtDesc(category);
-
-        return posts.stream()
+    public CursorPageResponse<BoardPostSummaryResponse> findPosts(BoardCategory category, String cursor, Integer size) {
+        int pageSize = normalizeSize(size);
+        Cursor decodedCursor = cursorCodec.decode(cursor);
+        List<BoardPost> posts = boardPostRepository.findPage(
+                category,
+                cursorCreatedAt(decodedCursor),
+                cursorId(decodedCursor),
+                pageSize + 1
+        );
+        boolean hasNext = posts.size() > pageSize;
+        List<BoardPost> pagePosts = posts.stream()
+                .limit(pageSize)
+                .toList();
+        String nextCursor = hasNext && !pagePosts.isEmpty()
+                ? cursorCodec.encode(pagePosts.getLast().getCreatedAt(), pagePosts.getLast().getId())
+                : null;
+        List<BoardPostSummaryResponse> items = pagePosts.stream()
                 .map(BoardPostSummaryResponse::from)
                 .toList();
+        return new CursorPageResponse<>(items, nextCursor, hasNext);
     }
 
     @Transactional
@@ -84,13 +104,29 @@ public class BoardService {
     }
 
     @Transactional(readOnly = true)
-    public List<BoardCommentResponse> findComments(Long postId) {
+    public CursorPageResponse<BoardCommentResponse> findComments(Long postId, String cursor, Integer size) {
         if (boardPostRepository.findById(postId).isEmpty()) {
             throw new BoardPostNotFoundException();
         }
-        return boardCommentRepository.findAllByPostIdOrderByCreatedAtAsc(postId).stream()
+        int pageSize = normalizeSize(size);
+        Cursor decodedCursor = cursorCodec.decode(cursor);
+        List<BoardComment> comments = boardCommentRepository.findPageByPostId(
+                postId,
+                cursorCreatedAt(decodedCursor),
+                cursorId(decodedCursor),
+                pageSize + 1
+        );
+        boolean hasNext = comments.size() > pageSize;
+        List<BoardComment> pageComments = comments.stream()
+                .limit(pageSize)
+                .toList();
+        String nextCursor = hasNext && !pageComments.isEmpty()
+                ? cursorCodec.encode(pageComments.getLast().getCreatedAt(), pageComments.getLast().getId())
+                : null;
+        List<BoardCommentResponse> items = pageComments.stream()
                 .map(BoardCommentResponse::from)
                 .toList();
+        return new CursorPageResponse<>(items, nextCursor, hasNext);
     }
 
     @Transactional
@@ -140,5 +176,20 @@ public class BoardService {
         if (!comment.isWrittenBy(authorId)) {
             throw new BoardAccessDeniedException();
         }
+    }
+
+    private int normalizeSize(Integer size) {
+        if (size == null) {
+            return DEFAULT_PAGE_SIZE;
+        }
+        return Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+    }
+
+    private LocalDateTime cursorCreatedAt(Cursor cursor) {
+        return cursor == null ? null : cursor.createdAt();
+    }
+
+    private Long cursorId(Cursor cursor) {
+        return cursor == null ? null : cursor.id();
     }
 }

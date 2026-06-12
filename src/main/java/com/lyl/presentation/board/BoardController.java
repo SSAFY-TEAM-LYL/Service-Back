@@ -5,9 +5,9 @@ import com.lyl.application.board.BoardService;
 import com.lyl.infrastructure.security.UserPrincipal;
 import com.lyl.presentation.board.dto.*;
 import com.lyl.presentation.common.ApiResponse;
+import com.lyl.presentation.common.CursorPageResponse;
 import jakarta.validation.Valid;
 import java.net.URI;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -29,10 +29,12 @@ public class BoardController {
     private final BoardService boardService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<BoardPostSummaryResponse>>> findPosts(
-            @RequestParam(required = false) BoardCategory category
+    public ResponseEntity<ApiResponse<CursorPageResponse<BoardPostSummaryResponse>>> findPosts(
+            @RequestParam(required = false) BoardCategory category,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false, defaultValue = "10") Integer size
     ) {
-        return ResponseEntity.ok(ApiResponse.success(boardService.findPosts(category)));
+        return ResponseEntity.ok(ApiResponse.success(boardService.findPosts(category, cursor, size)));
     }
 
     @GetMapping("/{id}")
@@ -70,8 +72,12 @@ public class BoardController {
     }
 
     @GetMapping("/{postId}/comments")
-    public ResponseEntity<ApiResponse<List<BoardCommentResponse>>> findComments(@PathVariable Long postId) {
-        return ResponseEntity.ok(ApiResponse.success(boardService.findComments(postId)));
+    public ResponseEntity<ApiResponse<CursorPageResponse<BoardCommentResponse>>> findComments(
+            @PathVariable Long postId,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false, defaultValue = "20") Integer size
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(boardService.findComments(postId, cursor, size)));
     }
 
     @PostMapping("/{postId}/comments")
