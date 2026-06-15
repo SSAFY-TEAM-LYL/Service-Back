@@ -14,6 +14,7 @@ public enum ErrorCode {
     OAUTH_LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "oauth-login-failed", "OAuth 로그인에 실패했습니다."),
     BOARD_POST_NOT_FOUND(HttpStatus.NOT_FOUND, "board-post-not-found", "게시글을 찾을 수 없습니다."),
     BOARD_COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "board-comment-not-found", "댓글을 찾을 수 없습니다."),
+    PROBLEM_PUBLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "problem-publication-not-found", "공개된 문제를 찾을 수 없습니다."),
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "invalid-credentials", "이메일 또는 비밀번호가 올바르지 않습니다."),
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "access-denied", "접근 권한이 없습니다."),
     VALIDATION_ERROR(HttpStatus.BAD_REQUEST, "validation-error", "요청 값이 올바르지 않습니다."),
