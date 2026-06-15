@@ -1,7 +1,11 @@
 package com.lyl.infrastructure.config;
 
+import com.lyl.infrastructure.security.CookieOAuth2AuthorizationRequestRepository;
 import com.lyl.infrastructure.security.JwtAuthenticationFilter;
 import com.lyl.infrastructure.security.JwtProperties;
+import com.lyl.infrastructure.security.OAuth2AuthenticationFailureHandler;
+import com.lyl.infrastructure.security.OAuth2AuthenticationSuccessHandler;
+import com.lyl.infrastructure.security.OAuth2Properties;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -15,8 +19,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -26,10 +28,13 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
-@EnableConfigurationProperties(JwtProperties.class)
+@EnableConfigurationProperties({JwtProperties.class, OAuth2Properties.class})
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final OAuth2AuthenticationSuccessHandler oauth2AuthenticationSuccessHandler;
+    private final OAuth2AuthenticationFailureHandler oauth2AuthenticationFailureHandler;
+    private final CookieOAuth2AuthorizationRequestRepository cookieOAuth2AuthorizationRequestRepository;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -40,11 +45,26 @@ public class SecurityConfig {
                 .logout(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/login").permitAll()
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/auth/signup",
+                                "/api/auth/login",
+                                "/api/auth/oauth/exchange"
+                        ).permitAll()
+                        .requestMatchers("/api/oauth2/authorization/**", "/api/login/oauth2/code/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/boards", "/api/boards/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/boards/*/comments").permitAll()
                         .requestMatchers("/test").permitAll()
                         .anyRequest().authenticated()
+                )
+                .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(endpoint -> endpoint
+                                .baseUri("/api/oauth2/authorization")
+                                .authorizationRequestRepository(cookieOAuth2AuthorizationRequestRepository)
+                        )
+                        .redirectionEndpoint(endpoint -> endpoint.baseUri("/api/login/oauth2/code/*"))
+                        .successHandler(oauth2AuthenticationSuccessHandler)
+                        .failureHandler(oauth2AuthenticationFailureHandler)
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
@@ -54,11 +74,6 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration)
             throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
-    }
-
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
     }
 
     @Bean

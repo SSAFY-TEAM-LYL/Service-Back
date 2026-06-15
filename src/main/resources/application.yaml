@@ -1,10 +1,37 @@
 spring:
   application:
     name: LYL-Back
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_OAUTH_CLIENT_ID}
+            client-secret: ${GOOGLE_OAUTH_CLIENT_SECRET}
+            redirect-uri: "{baseUrl}/api/login/oauth2/code/{registrationId}"
+            scope:
+              - openid
+              - email
+              - profile
+          kakao:
+            client-id: ${KAKAO_REST_API_KEY}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/api/login/oauth2/code/{registrationId}"
+            scope:
+              - profile_nickname
+              - account_email
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
   datasource:
     url: jdbc:mysql://localhost:3306/lyl?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    username: lyl
-    password: lyl1234
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
@@ -23,3 +50,7 @@ app:
   jwt:
     secret: ${JWT_SECRET}
     expiration-millis: 3600000
+  oauth2:
+    success-redirect-uri: ${OAUTH2_SUCCESS_REDIRECT_URI:http://localhost:5173/oauth/callback}
+    failure-redirect-uri: ${OAUTH2_FAILURE_REDIRECT_URI:http://localhost:5173/login}
+    code-expiration-seconds: 180

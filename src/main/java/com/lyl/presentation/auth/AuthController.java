@@ -1,9 +1,11 @@
 package com.lyl.presentation.auth;
 
 import com.lyl.application.auth.AuthService;
+import com.lyl.application.auth.OAuthLoginCodeService;
 import com.lyl.infrastructure.security.UserPrincipal;
 import com.lyl.presentation.auth.dto.AuthResponse;
 import com.lyl.presentation.auth.dto.LoginRequest;
+import com.lyl.presentation.auth.dto.OAuthExchangeRequest;
 import com.lyl.presentation.auth.dto.SignupRequest;
 import com.lyl.presentation.auth.dto.UserResponse;
 import com.lyl.presentation.common.ApiResponse;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final OAuthLoginCodeService oauthLoginCodeService;
 
     @PostMapping("/signup")
     public ResponseEntity<ApiResponse<AuthResponse>> signup(@Valid @RequestBody SignupRequest request) {
@@ -33,6 +36,13 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(ApiResponse.success(authService.login(request)));
+    }
+
+    @PostMapping("/oauth/exchange")
+    public ResponseEntity<ApiResponse<AuthResponse>> exchangeOAuthCode(
+            @Valid @RequestBody OAuthExchangeRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(oauthLoginCodeService.exchange(request.code())));
     }
 
     @GetMapping("/me")
