@@ -1,5 +1,6 @@
 package com.lyl.infrastructure.security;
 
+import com.lyl.common.exception.ErrorCode;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,7 +26,7 @@ public class OAuth2AuthenticationFailureHandler implements org.springframework.s
     ) throws IOException, ServletException {
         log.warn("OAuth2 provider authentication failed", exception);
         String redirectUri = UriComponentsBuilder.fromUriString(oauth2Properties.failureRedirectUri())
-                .queryParam("error", "oauth_login_failed")
+                .queryParam("error", ErrorCode.OAUTH_LOGIN_FAILED.name())
                 .build()
                 .toUriString();
         response.sendRedirect(redirectUri);

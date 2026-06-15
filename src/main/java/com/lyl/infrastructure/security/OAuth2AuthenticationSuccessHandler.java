@@ -2,6 +2,8 @@ package com.lyl.infrastructure.security;
 
 import com.lyl.application.auth.OAuthLoginCodeService;
 import com.lyl.application.auth.OAuthLoginService;
+import com.lyl.common.exception.BusinessException;
+import com.lyl.common.exception.ErrorCode;
 import com.lyl.domain.member.Member;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,9 +39,13 @@ public class OAuth2AuthenticationSuccessHandler implements org.springframework.s
             );
             String code = oauthLoginCodeService.createCode(member);
             response.sendRedirect(successUri(code));
+        } catch (BusinessException e) {
+            ErrorCode errorCode = e.getErrorCode();
+            log.warn("OAuth2 login failed after provider authentication. code={}", errorCode.name(), e);
+            response.sendRedirect(failureUri(errorCode));
         } catch (RuntimeException e) {
             log.warn("OAuth2 login failed after provider authentication", e);
-            response.sendRedirect(failureUri());
+            response.sendRedirect(failureUri(ErrorCode.OAUTH_LOGIN_FAILED));
         }
     }
 
@@ -50,9 +56,9 @@ public class OAuth2AuthenticationSuccessHandler implements org.springframework.s
                 .toUriString();
     }
 
-    private String failureUri() {
+    private String failureUri(ErrorCode errorCode) {
         return UriComponentsBuilder.fromUriString(oauth2Properties.failureRedirectUri())
-                .queryParam("error", "oauth_login_failed")
+                .queryParam("error", errorCode.name())
                 .build()
                 .toUriString();
     }
