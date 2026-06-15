@@ -8,6 +8,8 @@ public interface MemberRepository {
 
     Optional<Member> findByEmail(String email);
 
+    Optional<Member> findByEmailIncludingDeleted(String email);
+
     Optional<Member> findById(Long id);
 
     boolean existsByEmail(String email);

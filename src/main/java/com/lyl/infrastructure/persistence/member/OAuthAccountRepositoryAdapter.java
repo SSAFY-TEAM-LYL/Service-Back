@@ -22,4 +22,9 @@ public class OAuthAccountRepositoryAdapter implements OAuthAccountRepository {
     public Optional<OAuthAccount> findByProviderAndProviderUserId(OAuthProvider provider, String providerUserId) {
         return repository.findByProviderAndProviderUserIdAndDeletedAtIsNull(provider, providerUserId);
     }
+
+    @Override
+    public boolean existsByMemberId(Long memberId) {
+        return repository.existsByMemberIdAndDeletedAtIsNull(memberId);
+    }
 }

@@ -13,4 +13,6 @@ interface SpringDataOAuthAccountRepository extends JpaRepository<OAuthAccount, L
             OAuthProvider provider,
             String providerUserId
     );
+
+    boolean existsByMemberIdAndDeletedAtIsNull(Long memberId);
 }

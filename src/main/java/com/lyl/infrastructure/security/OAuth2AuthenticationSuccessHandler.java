@@ -24,6 +24,7 @@ public class OAuth2AuthenticationSuccessHandler implements org.springframework.s
     private final OAuthLoginService oauthLoginService;
     private final OAuthLoginCodeService oauthLoginCodeService;
     private final OAuth2Properties oauth2Properties;
+    private final CookieOAuth2AuthorizationRequestRepository cookieOAuth2AuthorizationRequestRepository;
 
     @Override
     public void onAuthenticationSuccess(
@@ -33,10 +34,10 @@ public class OAuth2AuthenticationSuccessHandler implements org.springframework.s
     ) throws IOException, ServletException {
         try {
             OAuth2AuthenticationToken oauthToken = (OAuth2AuthenticationToken) authentication;
-            Member member = oauthLoginService.login(
-                    oauthToken.getAuthorizedClientRegistrationId(),
-                    oauthToken.getPrincipal()
-            );
+            String registrationId = oauthToken.getAuthorizedClientRegistrationId();
+            Member member = cookieOAuth2AuthorizationRequestRepository.isRestoreMode(request)
+                    ? oauthLoginService.restore(registrationId, oauthToken.getPrincipal())
+                    : oauthLoginService.login(registrationId, oauthToken.getPrincipal());
             String code = oauthLoginCodeService.createCode(member);
             response.sendRedirect(successUri(code));
         } catch (BusinessException e) {

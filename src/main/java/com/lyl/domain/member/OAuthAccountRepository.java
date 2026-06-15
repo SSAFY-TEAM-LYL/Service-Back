@@ -7,4 +7,6 @@ public interface OAuthAccountRepository {
     OAuthAccount save(OAuthAccount oauthAccount);
 
     Optional<OAuthAccount> findByProviderAndProviderUserId(OAuthProvider provider, String providerUserId);
+
+    boolean existsByMemberId(Long memberId);
 }

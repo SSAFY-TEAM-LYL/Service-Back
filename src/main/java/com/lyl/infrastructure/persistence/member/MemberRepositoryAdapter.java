@@ -23,6 +23,11 @@ public class MemberRepositoryAdapter implements MemberRepository {
     }
 
     @Override
+    public Optional<Member> findByEmailIncludingDeleted(String email) {
+        return repository.findByEmail(email);
+    }
+
+    @Override
     public Optional<Member> findById(Long id) {
         return repository.findByIdAndDeletedAtIsNull(id);
     }

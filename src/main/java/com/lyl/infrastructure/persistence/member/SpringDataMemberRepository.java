@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 interface SpringDataMemberRepository extends JpaRepository<Member, Long> {
 
+    Optional<Member> findByEmail(String email);
+
     Optional<Member> findByEmailAndDeletedAtIsNull(String email);
 
     Optional<Member> findByIdAndDeletedAtIsNull(Long id);

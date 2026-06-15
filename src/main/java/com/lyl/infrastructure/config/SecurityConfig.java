@@ -49,6 +49,7 @@ public class SecurityConfig {
                                 HttpMethod.POST,
                                 "/api/auth/signup",
                                 "/api/auth/login",
+                                "/api/auth/restore",
                                 "/api/auth/oauth/exchange"
                         ).permitAll()
                         .requestMatchers("/api/oauth2/authorization/**", "/api/login/oauth2/code/**").permitAll()

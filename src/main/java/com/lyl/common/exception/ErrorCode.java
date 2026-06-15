@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 public enum ErrorCode {
 
     DUPLICATE_EMAIL(HttpStatus.CONFLICT, "duplicate-email", "이미 가입된 이메일입니다."),
+    DELETED_MEMBER(HttpStatus.CONFLICT, "deleted-member", "탈퇴처리한 회원입니다. 계정 복구 후 이용해주세요."),
     MEMBER_NOT_FOUND(HttpStatus.NOT_FOUND, "member-not-found", "사용자를 찾을 수 없습니다."),
     OAUTH_EMAIL_REQUIRED(HttpStatus.BAD_REQUEST, "oauth-email-required", "OAuth 계정에서 이메일을 확인할 수 없습니다."),
     OAUTH_ACCOUNT_CONFLICT(HttpStatus.CONFLICT, "oauth-account-conflict", "이미 같은 이메일로 가입된 계정이 있습니다."),

@@ -15,15 +15,17 @@ public class UserPrincipal implements UserDetails {
     private final Long id;
     private final String email;
     private final String nickname;
+    private final String profileImageUrl;
     private final String password;
     private final Role role;
     private final Collection<? extends GrantedAuthority> authorities;
 
-    private UserPrincipal(Long id, String email, String nickname, String password,
+    private UserPrincipal(Long id, String email, String nickname, String profileImageUrl, String password,
                           Role role, Collection<? extends GrantedAuthority> authorities) {
         this.id = id;
         this.email = email;
         this.nickname = nickname;
+        this.profileImageUrl = profileImageUrl;
         this.password = password;
         this.role = role;
         this.authorities = authorities;
@@ -34,6 +36,7 @@ public class UserPrincipal implements UserDetails {
                 member.getId(),
                 member.getEmail(),
                 member.getNickname(),
+                member.getProfileImageUrl(),
                 member.getPassword(),
                 member.getRole(),
                 List.of(new SimpleGrantedAuthority("ROLE_" + member.getRole().name()))

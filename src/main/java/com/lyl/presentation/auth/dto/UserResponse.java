@@ -7,10 +7,17 @@ public record UserResponse(
         Long id,
         String email,
         String nickname,
+        String profileImageUrl,
         Role role
 ) {
 
     public static UserResponse from(Member member) {
-        return new UserResponse(member.getId(), member.getEmail(), member.getNickname(), member.getRole());
+        return new UserResponse(
+                member.getId(),
+                member.getEmail(),
+                member.getNickname(),
+                member.getProfileImageUrl(),
+                member.getRole()
+        );
     }
 }

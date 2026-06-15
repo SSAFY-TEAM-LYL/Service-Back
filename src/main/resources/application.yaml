@@ -21,6 +21,7 @@ spring:
             redirect-uri: "{baseUrl}/api/login/oauth2/code/{registrationId}"
             scope:
               - profile_nickname
+              - profile_image
               - account_email
         provider:
           kakao:

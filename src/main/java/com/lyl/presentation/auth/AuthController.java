@@ -6,6 +6,7 @@ import com.lyl.infrastructure.security.UserPrincipal;
 import com.lyl.presentation.auth.dto.AuthResponse;
 import com.lyl.presentation.auth.dto.LoginRequest;
 import com.lyl.presentation.auth.dto.OAuthExchangeRequest;
+import com.lyl.presentation.auth.dto.RestoreMemberRequest;
 import com.lyl.presentation.auth.dto.SignupRequest;
 import com.lyl.presentation.auth.dto.UserResponse;
 import com.lyl.presentation.common.ApiResponse;
@@ -38,6 +39,11 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(authService.login(request)));
     }
 
+    @PostMapping("/restore")
+    public ResponseEntity<ApiResponse<AuthResponse>> restore(@Valid @RequestBody RestoreMemberRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(authService.restore(request)));
+    }
+
     @PostMapping("/oauth/exchange")
     public ResponseEntity<ApiResponse<AuthResponse>> exchangeOAuthCode(
             @Valid @RequestBody OAuthExchangeRequest request
@@ -51,6 +57,7 @@ public class AuthController {
                 userPrincipal.getId(),
                 userPrincipal.getEmail(),
                 userPrincipal.getNickname(),
+                userPrincipal.getProfileImageUrl(),
                 userPrincipal.getRole()
         );
         return ResponseEntity.ok(ApiResponse.success(response));

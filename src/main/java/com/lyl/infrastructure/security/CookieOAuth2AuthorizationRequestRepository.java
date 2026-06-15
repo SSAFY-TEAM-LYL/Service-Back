@@ -16,6 +16,9 @@ public class CookieOAuth2AuthorizationRequestRepository
         implements AuthorizationRequestRepository<OAuth2AuthorizationRequest> {
 
     private static final String OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME = "oauth2_auth_request";
+    private static final String OAUTH2_RESTORE_MODE_COOKIE_NAME = "oauth2_restore_mode";
+    private static final String RESTORE_MODE_PARAMETER = "mode";
+    private static final String RESTORE_MODE_VALUE = "restore";
     private static final int COOKIE_EXPIRE_SECONDS = 180;
 
     @Override
@@ -41,6 +44,20 @@ public class CookieOAuth2AuthorizationRequestRepository
         cookie.setHttpOnly(true);
         cookie.setMaxAge(COOKIE_EXPIRE_SECONDS);
         response.addCookie(cookie);
+
+        if (RESTORE_MODE_VALUE.equals(request.getParameter(RESTORE_MODE_PARAMETER))) {
+            Cookie restoreCookie = new Cookie(OAUTH2_RESTORE_MODE_COOKIE_NAME, "true");
+            restoreCookie.setPath("/");
+            restoreCookie.setHttpOnly(true);
+            restoreCookie.setMaxAge(COOKIE_EXPIRE_SECONDS);
+            response.addCookie(restoreCookie);
+        } else {
+            Cookie restoreCookie = new Cookie(OAUTH2_RESTORE_MODE_COOKIE_NAME, "");
+            restoreCookie.setPath("/");
+            restoreCookie.setHttpOnly(true);
+            restoreCookie.setMaxAge(0);
+            response.addCookie(restoreCookie);
+        }
     }
 
     @Override
@@ -54,12 +71,22 @@ public class CookieOAuth2AuthorizationRequestRepository
     }
 
     private java.util.Optional<Cookie> getCookie(HttpServletRequest request) {
+        return getCookie(request, OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME);
+    }
+
+    public boolean isRestoreMode(HttpServletRequest request) {
+        return getCookie(request, OAUTH2_RESTORE_MODE_COOKIE_NAME)
+                .map(cookie -> "true".equals(cookie.getValue()))
+                .orElse(false);
+    }
+
+    private java.util.Optional<Cookie> getCookie(HttpServletRequest request, String name) {
         Cookie[] cookies = request.getCookies();
         if (cookies == null) {
             return java.util.Optional.empty();
         }
         return Arrays.stream(cookies)
-                .filter(cookie -> OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME.equals(cookie.getName()))
+                .filter(cookie -> name.equals(cookie.getName()))
                 .findFirst();
     }
 
@@ -69,6 +96,12 @@ public class CookieOAuth2AuthorizationRequestRepository
         cookie.setHttpOnly(true);
         cookie.setMaxAge(0);
         response.addCookie(cookie);
+
+        Cookie restoreCookie = new Cookie(OAUTH2_RESTORE_MODE_COOKIE_NAME, "");
+        restoreCookie.setPath("/");
+        restoreCookie.setHttpOnly(true);
+        restoreCookie.setMaxAge(0);
+        response.addCookie(restoreCookie);
     }
 
     private String serialize(OAuth2AuthorizationRequest authorizationRequest) {

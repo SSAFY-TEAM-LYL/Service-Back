@@ -8,7 +8,8 @@ public record OAuthUserProfile(
         OAuthProvider provider,
         String providerUserId,
         String email,
-        String nickname
+        String nickname,
+        String profileImageUrl
 ) {
 
     public static OAuthUserProfile from(OAuthProvider provider, Map<String, Object> attributes) {
@@ -22,8 +23,15 @@ public record OAuthUserProfile(
         String providerUserId = asString(attributes.get("sub"));
         String email = asString(attributes.get("email"));
         String nickname = asString(attributes.get("name"));
+        String profileImageUrl = asString(attributes.get("picture"));
         validateEmail(email);
-        return new OAuthUserProfile(OAuthProvider.GOOGLE, providerUserId, email, defaultNickname(nickname, email));
+        return new OAuthUserProfile(
+                OAuthProvider.GOOGLE,
+                providerUserId,
+                email,
+                defaultNickname(nickname, email),
+                blankToNull(profileImageUrl)
+        );
     }
 
     @SuppressWarnings("unchecked")
@@ -34,8 +42,15 @@ public record OAuthUserProfile(
 
         String email = asString(kakaoAccount.get("email"));
         String nickname = asString(profile.get("nickname"));
+        String profileImageUrl = kakaoProfileImage(profile, attributes);
         validateEmail(email);
-        return new OAuthUserProfile(OAuthProvider.KAKAO, providerUserId, email, defaultNickname(nickname, email));
+        return new OAuthUserProfile(
+                OAuthProvider.KAKAO,
+                providerUserId,
+                email,
+                defaultNickname(nickname, email),
+                blankToNull(profileImageUrl)
+        );
     }
 
     private static void validateEmail(String email) {
@@ -54,5 +69,26 @@ public record OAuthUserProfile(
 
     private static String asString(Object value) {
         return value == null ? null : String.valueOf(value);
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static String kakaoProfileImage(Map<String, Object> profile, Map<String, Object> attributes) {
+        String profileImageUrl = asString(profile.get("profile_image_url"));
+        if (profileImageUrl == null || profileImageUrl.isBlank()) {
+            profileImageUrl = asString(profile.get("thumbnail_image_url"));
+        }
+        if (profileImageUrl == null || profileImageUrl.isBlank()) {
+            Map<String, Object> properties = (Map<String, Object>) attributes.getOrDefault("properties", Map.of());
+            profileImageUrl = asString(properties.get("profile_image"));
+        }
+        if (profileImageUrl == null || profileImageUrl.isBlank()) {
+            Map<String, Object> properties = (Map<String, Object>) attributes.getOrDefault("properties", Map.of());
+            profileImageUrl = asString(properties.get("thumbnail_image"));
+        }
+        return profileImageUrl;
     }
 }
