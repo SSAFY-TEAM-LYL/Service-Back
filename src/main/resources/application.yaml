@@ -1,4 +1,8 @@
 spring:
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../.env[.properties]
   application:
     name: LYL-Back
   security:
@@ -30,7 +34,7 @@ spring:
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
   datasource:
-    url: jdbc:mysql://localhost:3306/lyl?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    url: ${DB_URL:jdbc:mysql://localhost:3306/lyl?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&sslMode=DISABLED&allowPublicKeyRetrieval=true}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -55,3 +59,10 @@ app:
     success-redirect-uri: ${OAUTH2_SUCCESS_REDIRECT_URI:http://localhost:5173/oauth/callback}
     failure-redirect-uri: ${OAUTH2_FAILURE_REDIRECT_URI:http://localhost:5173/login}
     code-expiration-seconds: 180
+  problem-bank:
+    enabled: ${PROBLEM_BANK_ENABLED:false}
+    datasource:
+      url: ${PROBLEM_BANK_DB_URL:}
+      username: ${PROBLEM_BANK_DB_USERNAME:}
+      password: ${PROBLEM_BANK_DB_PASSWORD:}
+      driver-class-name: org.postgresql.Driver

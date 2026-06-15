@@ -1,0 +1,177 @@
+package com.lyl.application.problem;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import com.lyl.domain.problem.ProblemBankProblemRepository;
+import com.lyl.domain.problem.ProblemConstraint;
+import com.lyl.domain.problem.ProblemDetail;
+import com.lyl.domain.problem.ProblemPublication;
+import com.lyl.domain.problem.ProblemPublicationRepository;
+import com.lyl.domain.problem.ProblemSample;
+import com.lyl.domain.problem.ProblemSummary;
+import com.lyl.domain.problem.exception.ProblemNotFoundException;
+import com.lyl.presentation.common.CursorPageResponse;
+import com.lyl.presentation.problem.dto.ProblemDetailResponse;
+import com.lyl.presentation.problem.dto.ProblemSummaryResponse;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
+
+@SpringBootTest
+class ProblemQueryServiceTest {
+
+    @Autowired
+    private ProblemQueryService problemQueryService;
+
+    @Autowired
+    private ProblemPublicationRepository problemPublicationRepository;
+
+    @Autowired
+    private FakeProblemBankProblemRepository problemBankProblemRepository;
+
+    @BeforeEach
+    void setUp() {
+        problemBankProblemRepository.clear();
+    }
+
+    @Test
+    void findProblemsReturnsPublishedProblemSummariesFromProblemBank() {
+        String firstProblemId = "77777777-7777-4777-8777-777777777777";
+        String secondProblemId = "88888888-8888-4888-8888-888888888888";
+        problemPublicationRepository.save(new ProblemPublication(firstProblemId));
+        problemPublicationRepository.save(new ProblemPublication(secondProblemId));
+        problemBankProblemRepository.addSummary(new ProblemSummary(
+                firstProblemId,
+                "첫 번째 문제",
+                1000,
+                OffsetDateTime.parse("2026-06-15T01:00:00Z")
+        ));
+        problemBankProblemRepository.addSummary(new ProblemSummary(
+                secondProblemId,
+                "두 번째 문제",
+                2000,
+                OffsetDateTime.parse("2026-06-15T02:00:00Z")
+        ));
+
+        CursorPageResponse<ProblemSummaryResponse> response = problemQueryService.findProblems(null, 20);
+
+        assertThat(response.items())
+                .extracting(ProblemSummaryResponse::id)
+                .contains(firstProblemId, secondProblemId);
+        assertThat(response.items())
+                .extracting(ProblemSummaryResponse::title)
+                .contains("첫 번째 문제", "두 번째 문제");
+    }
+
+    @Test
+    void findProblemReturnsDetailWhenProblemIsPublished() {
+        String problemId = "99999999-9999-4999-8999-999999999999";
+        problemPublicationRepository.save(new ProblemPublication(problemId));
+        problemBankProblemRepository.addDetail(new ProblemDetail(
+                problemId,
+                "상세 문제",
+                "문제 설명",
+                "입력 형식",
+                "출력 형식",
+                List.of(new ProblemConstraint("N", 1L, 100L, "N의 범위")),
+                List.of(new ProblemSample("1 2\n", "3\n", "기본 예시")),
+                1000
+        ));
+
+        ProblemDetailResponse response = problemQueryService.findProblem(problemId);
+
+        assertThat(response.id()).isEqualTo(problemId);
+        assertThat(response.title()).isEqualTo("상세 문제");
+        assertThat(response.constraints()).hasSize(1);
+        assertThat(response.samples()).hasSize(1);
+    }
+
+    @Test
+    void findProblemThrowsNotFoundWhenProblemIsNotPublished() {
+        String problemId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+        problemBankProblemRepository.addDetail(new ProblemDetail(
+                problemId,
+                "미공개 문제",
+                "문제 설명",
+                "입력 형식",
+                "출력 형식",
+                List.of(),
+                List.of(),
+                1000
+        ));
+
+        assertThatThrownBy(() -> problemQueryService.findProblem(problemId))
+                .isInstanceOf(ProblemNotFoundException.class);
+    }
+
+    @TestConfiguration
+    static class ProblemQueryServiceTestConfig {
+
+        @Bean
+        @Primary
+        FakeProblemBankProblemRepository fakeProblemBankProblemRepository() {
+            return new FakeProblemBankProblemRepository();
+        }
+    }
+
+    static class FakeProblemBankProblemRepository implements ProblemBankProblemRepository {
+
+        private final Map<String, ProblemSummary> summaries = new LinkedHashMap<>();
+        private final Map<String, ProblemDetail> details = new LinkedHashMap<>();
+
+        @Override
+        public List<ProblemSummary> findPublishedSummaries(int offset, int size) {
+            return summaries.values().stream()
+                    .skip(offset)
+                    .limit(size)
+                    .toList();
+        }
+
+        @Override
+        public List<ProblemSummary> findSummariesByIds(List<String> problemIds) {
+            List<ProblemSummary> result = new ArrayList<>();
+            for (String problemId : problemIds) {
+                ProblemSummary summary = summaries.get(problemId);
+                if (summary != null) {
+                    result.add(summary);
+                }
+            }
+            return result;
+        }
+
+        @Override
+        public Optional<ProblemDetail> findDetailById(String problemId) {
+            return Optional.ofNullable(details.get(problemId));
+        }
+
+        void addSummary(ProblemSummary summary) {
+            summaries.put(summary.id(), summary);
+        }
+
+        void addDetail(ProblemDetail detail) {
+            details.put(detail.id(), detail);
+            summaries.putIfAbsent(detail.id(), new ProblemSummary(
+                    detail.id(),
+                    detail.title(),
+                    detail.timeLimitMs(),
+                    OffsetDateTime.parse("2026-06-15T00:00:00Z")
+            ));
+        }
+
+        void clear() {
+            summaries.clear();
+            details.clear();
+        }
+    }
+}

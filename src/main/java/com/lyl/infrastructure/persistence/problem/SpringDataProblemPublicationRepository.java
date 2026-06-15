@@ -16,6 +16,14 @@ interface SpringDataProblemPublicationRepository extends JpaRepository<ProblemPu
     Optional<ProblemPublication> findByProblemIdAndDeletedAtIsNull(String problemId);
 
     @Query("""
+            select p.problemId
+            from ProblemPublication p
+            where p.deletedAt is null
+              and p.problemId in :problemIds
+            """)
+    List<String> findPublishedProblemIds(@Param("problemIds") List<String> problemIds);
+
+    @Query("""
             select p
             from ProblemPublication p
             where p.deletedAt is null

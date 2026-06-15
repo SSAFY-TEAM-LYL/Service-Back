@@ -6,16 +6,31 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.lyl.domain.member.Member;
 import com.lyl.domain.member.MemberRepository;
 import com.lyl.domain.member.Role;
+import com.lyl.domain.problem.ProblemBankProblemRepository;
+import com.lyl.domain.problem.ProblemDetail;
 import com.lyl.domain.problem.ProblemPublication;
 import com.lyl.domain.problem.ProblemPublicationRepository;
+import com.lyl.domain.problem.ProblemSummary;
 import com.lyl.domain.problem.exception.ProblemAccessDeniedException;
 import com.lyl.domain.problem.exception.ProblemPublicationNotFoundException;
 import com.lyl.presentation.common.CursorPageResponse;
+import com.lyl.presentation.common.PageResponse;
+import com.lyl.presentation.problem.dto.AdminProblemBankProblemResponse;
 import com.lyl.presentation.problem.dto.ProblemPublicationCreateRequest;
 import com.lyl.presentation.problem.dto.ProblemPublicationResponse;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 
 @SpringBootTest
 class ProblemPublicationServiceTest {
@@ -28,6 +43,14 @@ class ProblemPublicationServiceTest {
 
     @Autowired
     private MemberRepository memberRepository;
+
+    @Autowired
+    private FakeProblemBankProblemRepository problemBankProblemRepository;
+
+    @BeforeEach
+    void setUp() {
+        problemBankProblemRepository.clear();
+    }
 
     @Test
     void publishCreatesPublicationWhenAdminRequests() {
@@ -72,6 +95,37 @@ class ProblemPublicationServiceTest {
     }
 
     @Test
+    void findProblemBankProblemsReturnsPublishedStatusForAdmin() {
+        Member admin = saveMember("problem-bank-list-admin@example.com", "problemBankAdmin", Role.ADMIN);
+        String publishedProblemId = "77777777-7777-4777-8777-777777777777";
+        String unpublishedProblemId = "88888888-8888-4888-8888-888888888888";
+        problemBankProblemRepository.addSummary(new ProblemSummary(
+                publishedProblemId,
+                "공개된 문제",
+                1000,
+                OffsetDateTime.parse("2026-06-15T01:00:00Z")
+        ));
+        problemBankProblemRepository.addSummary(new ProblemSummary(
+                unpublishedProblemId,
+                "등록 가능한 문제",
+                2000,
+                OffsetDateTime.parse("2026-06-15T02:00:00Z")
+        ));
+        problemPublicationService.publish(new ProblemPublicationCreateRequest(publishedProblemId), admin.getId());
+
+        PageResponse<AdminProblemBankProblemResponse> response =
+                problemPublicationService.findProblemBankProblems(0, 20, admin.getId());
+
+        assertThat(response.items())
+                .extracting(AdminProblemBankProblemResponse::id)
+                .containsExactly(publishedProblemId, unpublishedProblemId);
+        assertThat(response.items())
+                .filteredOn(AdminProblemBankProblemResponse::published)
+                .extracting(AdminProblemBankProblemResponse::id)
+                .containsExactly(publishedProblemId);
+    }
+
+    @Test
     void unpublishSoftDeletesPublication() {
         Member admin = saveMember("problem-unpublish-admin@example.com", "problemUnpublishAdmin", Role.ADMIN);
         String problemId = "55555555-5555-4555-8555-555555555555";
@@ -110,5 +164,53 @@ class ProblemPublicationServiceTest {
 
     private Member saveMember(String email, String nickname, Role role) {
         return memberRepository.save(new Member(email, nickname, "encoded-password", role));
+    }
+
+    @TestConfiguration
+    static class ProblemPublicationServiceTestConfig {
+
+        @Bean
+        @Primary
+        FakeProblemBankProblemRepository fakeProblemBankProblemRepository() {
+            return new FakeProblemBankProblemRepository();
+        }
+    }
+
+    static class FakeProblemBankProblemRepository implements ProblemBankProblemRepository {
+
+        private final Map<String, ProblemSummary> summaries = new LinkedHashMap<>();
+
+        @Override
+        public List<ProblemSummary> findPublishedSummaries(int offset, int size) {
+            return summaries.values().stream()
+                    .skip(offset)
+                    .limit(size)
+                    .toList();
+        }
+
+        @Override
+        public List<ProblemSummary> findSummariesByIds(List<String> problemIds) {
+            List<ProblemSummary> result = new ArrayList<>();
+            for (String problemId : problemIds) {
+                ProblemSummary summary = summaries.get(problemId);
+                if (summary != null) {
+                    result.add(summary);
+                }
+            }
+            return result;
+        }
+
+        @Override
+        public Optional<ProblemDetail> findDetailById(String problemId) {
+            return Optional.empty();
+        }
+
+        void addSummary(ProblemSummary summary) {
+            summaries.put(summary.id(), summary);
+        }
+
+        void clear() {
+            summaries.clear();
+        }
     }
 }
