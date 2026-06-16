@@ -2,6 +2,7 @@ package com.lyl.infrastructure.problem;
 
 import com.lyl.domain.problem.ProblemBankProblemRepository;
 import com.lyl.domain.problem.ProblemDetail;
+import com.lyl.domain.problem.ProblemJudgingData;
 import com.lyl.domain.problem.ProblemSummary;
 import com.lyl.domain.problem.exception.ProblemBankUnavailableException;
 import java.util.List;
@@ -23,6 +24,11 @@ public class UnavailableProblemBankProblemRepository implements ProblemBankProbl
 
     @Override
     public Optional<ProblemDetail> findDetailById(String problemId) {
+        throw new ProblemBankUnavailableException();
+    }
+
+    @Override
+    public Optional<ProblemJudgingData> findJudgingDataById(String problemId) {
         throw new ProblemBankUnavailableException();
     }
 }
