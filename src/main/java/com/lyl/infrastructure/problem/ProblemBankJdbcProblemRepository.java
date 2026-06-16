@@ -7,8 +7,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lyl.domain.problem.ProblemBankProblemRepository;
 import com.lyl.domain.problem.ProblemConstraint;
 import com.lyl.domain.problem.ProblemDetail;
+import com.lyl.domain.problem.ProblemJudgingData;
 import com.lyl.domain.problem.ProblemSample;
 import com.lyl.domain.problem.ProblemSummary;
+import com.lyl.domain.problem.ProblemTestCase;
 import com.lyl.domain.problem.exception.ProblemBankUnavailableException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -91,6 +93,40 @@ public class ProblemBankJdbcProblemRepository implements ProblemBankProblemRepos
                     (rs, rowNum) -> toDetail(rs)
             );
             return details.stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new ProblemBankUnavailableException();
+        }
+    }
+
+    @Override
+    public Optional<ProblemJudgingData> findJudgingDataById(String problemId) {
+        try {
+            List<Integer> timeLimits = jdbcTemplate.query("""
+                            select time_limit_ms
+                            from problems
+                            where id = :problemId
+                            """,
+                    Map.of("problemId", problemId),
+                    (rs, rowNum) -> rs.getObject("time_limit_ms", Integer.class)
+            );
+            if (timeLimits.isEmpty()) {
+                return Optional.empty();
+            }
+            List<ProblemTestCase> testCases = jdbcTemplate.query("""
+                            select seq, input, expected, category
+                            from test_cases
+                            where problem_id = :problemId
+                            order by seq asc
+                            """,
+                    Map.of("problemId", problemId),
+                    (rs, rowNum) -> new ProblemTestCase(
+                            rs.getInt("seq"),
+                            rs.getString("input"),
+                            rs.getString("expected"),
+                            rs.getString("category")
+                    )
+            );
+            return Optional.of(new ProblemJudgingData(problemId, timeLimits.getFirst(), testCases));
         } catch (DataAccessException e) {
             throw new ProblemBankUnavailableException();
         }

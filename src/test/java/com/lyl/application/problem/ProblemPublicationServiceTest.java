@@ -8,6 +8,7 @@ import com.lyl.domain.member.MemberRepository;
 import com.lyl.domain.member.Role;
 import com.lyl.domain.problem.ProblemBankProblemRepository;
 import com.lyl.domain.problem.ProblemDetail;
+import com.lyl.domain.problem.ProblemJudgingData;
 import com.lyl.domain.problem.ProblemPublication;
 import com.lyl.domain.problem.ProblemPublicationRepository;
 import com.lyl.domain.problem.ProblemSummary;
@@ -202,6 +203,11 @@ class ProblemPublicationServiceTest {
 
         @Override
         public Optional<ProblemDetail> findDetailById(String problemId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<ProblemJudgingData> findJudgingDataById(String problemId) {
             return Optional.empty();
         }
 

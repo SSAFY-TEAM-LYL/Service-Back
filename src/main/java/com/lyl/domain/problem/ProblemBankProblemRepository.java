@@ -10,4 +10,6 @@ public interface ProblemBankProblemRepository {
     List<ProblemSummary> findSummariesByIds(List<String> problemIds);
 
     Optional<ProblemDetail> findDetailById(String problemId);
+
+    Optional<ProblemJudgingData> findJudgingDataById(String problemId);
 }
