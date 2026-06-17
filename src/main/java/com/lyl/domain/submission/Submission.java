@@ -142,4 +142,23 @@ public class Submission extends BaseEntity {
     public boolean isInProgress() {
         return this.status == SubmissionStatus.PENDING || this.status == SubmissionStatus.JUDGING;
     }
+
+    public void updateForRejudge(SubmissionLanguage language, String sourceCode, int totalTestCount) {
+        this.language = language;
+        this.sourceCode = sourceCode;
+        this.status = SubmissionStatus.PENDING;
+        this.totalTestCount = totalTestCount;
+        this.passedTestCount = 0;
+        this.maxTimeMs = null;
+        this.maxMemoryKb = null;
+        this.firstFailedCaseSeq = null;
+        this.errorMessage = null;
+        this.submittedAt = LocalDateTime.now();
+        this.judgedAt = null;
+        this.testCaseResults.clear();
+    }
+
+    public boolean isWrittenBy(Long memberId) {
+        return member.getId().equals(memberId);
+    }
 }

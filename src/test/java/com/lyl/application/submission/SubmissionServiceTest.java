@@ -13,9 +13,15 @@ import com.lyl.domain.problem.ProblemPublicationRepository;
 import com.lyl.domain.problem.ProblemSummary;
 import com.lyl.domain.problem.ProblemTestCase;
 import com.lyl.domain.problem.exception.ProblemNotFoundException;
+import com.lyl.domain.submission.exception.SubmissionNotFoundException;
+import com.lyl.presentation.common.CursorPageResponse;
 import com.lyl.domain.submission.SubmissionStatus;
 import com.lyl.presentation.submission.dto.SubmissionCreateRequest;
 import com.lyl.presentation.submission.dto.SubmissionResponse;
+import com.lyl.presentation.submission.dto.SubmissionReviewCreateRequest;
+import com.lyl.presentation.submission.dto.SubmissionReviewResponse;
+import com.lyl.presentation.submission.dto.SubmissionReviewUpdateRequest;
+import com.lyl.presentation.submission.dto.SubmissionUpdateRequest;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -122,6 +128,85 @@ class SubmissionServiceTest {
                 member.getId()
         )).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("지원하지 않는 언어입니다.");
+    }
+
+    @Test
+    void updateSubmissionRejudgesAndReturnsSourceCode() {
+        Member member = saveMember("submitter5@example.com", "submitter5");
+        publishProblemWithTwoTestCases("55555555-2222-4333-8444-555555555555");
+        SubmissionResponse created = submissionService.createSubmission(
+                "55555555-2222-4333-8444-555555555555",
+                new SubmissionCreateRequest("PYTHON3", "print(1)"),
+                member.getId()
+        );
+
+        SubmissionResponse updated = submissionService.updateSubmission(
+                created.id(),
+                new SubmissionUpdateRequest("JAVA", "public class Main {}"),
+                member.getId()
+        );
+
+        assertThat(updated.id()).isEqualTo(created.id());
+        assertThat(updated.language().name()).isEqualTo("JAVA");
+        assertThat(updated.sourceCode()).isEqualTo("public class Main {}");
+        assertThat(updated.status()).isEqualTo(SubmissionStatus.JUDGING);
+        assertThat(updated.passedTestCount()).isZero();
+        assertThat(updated.testCaseResults()).hasSize(2);
+    }
+
+    @Test
+    void deleteSubmissionHidesSubmission() {
+        Member member = saveMember("submitter6@example.com", "submitter6");
+        publishProblemWithTwoTestCases("66666666-2222-4333-8444-555555555555");
+        SubmissionResponse created = submissionService.createSubmission(
+                "66666666-2222-4333-8444-555555555555",
+                new SubmissionCreateRequest("CPP", "int main(){return 0;}"),
+                member.getId()
+        );
+
+        submissionService.deleteSubmission(created.id(), member.getId());
+
+        assertThatThrownBy(() -> submissionService.findSubmission(created.id(), member.getId()))
+                .isInstanceOf(SubmissionNotFoundException.class);
+    }
+
+    @Test
+    void submissionReviewCrudManagesOwnReview() {
+        Member member = saveMember("submitter7@example.com", "submitter7");
+        publishProblemWithTwoTestCases("77777777-2222-4333-8444-555555555555");
+        SubmissionResponse submission = submissionService.createSubmission(
+                "77777777-2222-4333-8444-555555555555",
+                new SubmissionCreateRequest("PYTHON3", "print(1)"),
+                member.getId()
+        );
+
+        SubmissionReviewResponse created = submissionService.createSubmissionReview(
+                submission.id(),
+                new SubmissionReviewCreateRequest("첫 리뷰"),
+                member.getId()
+        );
+        CursorPageResponse<SubmissionReviewResponse> listed = submissionService.findSubmissionReviews(
+                submission.id(),
+                member.getId(),
+                null,
+                20
+        );
+        SubmissionReviewResponse updated = submissionService.updateSubmissionReview(
+                created.id(),
+                new SubmissionReviewUpdateRequest("수정된 리뷰"),
+                member.getId()
+        );
+        submissionService.deleteSubmissionReview(created.id(), member.getId());
+        CursorPageResponse<SubmissionReviewResponse> afterDelete = submissionService.findSubmissionReviews(
+                submission.id(),
+                member.getId(),
+                null,
+                20
+        );
+
+        assertThat(listed.items()).hasSize(1);
+        assertThat(updated.content()).isEqualTo("수정된 리뷰");
+        assertThat(afterDelete.items()).isEmpty();
     }
 
     private Member saveMember(String email, String nickname) {

@@ -18,6 +18,7 @@ public enum ErrorCode {
     PROBLEM_PUBLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "problem-publication-not-found", "공개된 문제를 찾을 수 없습니다."),
     PROBLEM_BANK_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "problem-bank-unavailable", "문제 은행을 사용할 수 없습니다."),
     SUBMISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "submission-not-found", "제출을 찾을 수 없습니다."),
+    SUBMISSION_REVIEW_NOT_FOUND(HttpStatus.NOT_FOUND, "submission-review-not-found", "제출 리뷰를 찾을 수 없습니다."),
     JUDGE_SERVER_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "judge-server-unavailable", "채점 서버를 사용할 수 없습니다."),
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "invalid-credentials", "이메일 또는 비밀번호가 올바르지 않습니다."),
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "access-denied", "접근 권한이 없습니다."),

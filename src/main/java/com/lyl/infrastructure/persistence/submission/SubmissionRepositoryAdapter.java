@@ -63,6 +63,12 @@ public class SubmissionRepositoryAdapter implements SubmissionRepository {
         return findAllByIdsKeepingOrder(ids);
     }
 
+    @Override
+    public void delete(Submission submission) {
+        submission.delete();
+        repository.save(submission);
+    }
+
     private List<Submission> findAllByIdsKeepingOrder(Collection<Long> ids) {
         if (ids.isEmpty()) {
             return List.of();
