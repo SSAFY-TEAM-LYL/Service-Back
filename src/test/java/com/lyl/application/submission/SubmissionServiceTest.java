@@ -102,6 +102,27 @@ class SubmissionServiceTest {
     }
 
     @Test
+    void refreshInProgressSubmissionsAggregatesWrongAnswerResult() {
+        Member member = saveMember("submitter8@example.com", "submitter8");
+        publishProblemWithTwoTestCases("88888888-2222-4333-8444-555555555555");
+        SubmissionResponse created = submissionService.createSubmission(
+                "88888888-2222-4333-8444-555555555555",
+                new SubmissionCreateRequest("PYTHON3", "print(0)"),
+                member.getId()
+        );
+        judge0Client.completeAll(SubmissionStatus.WRONG_ANSWER);
+
+        submissionService.refreshInProgressSubmissions(20);
+
+        SubmissionResponse response = submissionService.findSubmission(created.id(), member.getId());
+        assertThat(response.status()).isEqualTo(SubmissionStatus.WRONG_ANSWER);
+        assertThat(response.passedTestCount()).isZero();
+        assertThat(response.firstFailedCaseSeq()).isZero();
+        assertThat(response.errorMessage()).isEqualTo("WRONG_ANSWER");
+        assertThat(response.judgedAt()).isNotNull();
+    }
+
+    @Test
     void createSubmissionThrowsNotFoundWhenProblemIsNotPublished() {
         Member member = saveMember("submitter3@example.com", "submitter3");
         problemBankProblemRepository.addJudgingData(new ProblemJudgingData(

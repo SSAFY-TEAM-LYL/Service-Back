@@ -168,7 +168,11 @@ public class RestJudge0Client implements Judge0Client {
         if (value == null || value.isBlank()) {
             return null;
         }
-        return new String(Base64.getDecoder().decode(value), StandardCharsets.UTF_8);
+        try {
+            return new String(Base64.getDecoder().decode(value), StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            return value;
+        }
     }
 
     private void ensureEnabled() {
