@@ -2,6 +2,7 @@ package com.lyl.application.submission;
 
 import com.lyl.application.common.Cursor;
 import com.lyl.application.common.CursorCodec;
+import com.lyl.application.streak.DailyStreakService;
 import com.lyl.domain.member.Member;
 import com.lyl.domain.member.MemberRepository;
 import com.lyl.domain.member.exception.MemberNotFoundException;
@@ -52,6 +53,7 @@ public class SubmissionService {
     private final SubmissionReviewRepository submissionReviewRepository;
     private final Judge0Client judge0Client;
     private final CursorCodec cursorCodec;
+    private final DailyStreakService dailyStreakService;
 
     @Transactional
     public SubmissionResponse createSubmission(String problemId, SubmissionCreateRequest request, Long memberId) {
@@ -75,6 +77,7 @@ public class SubmissionService {
         );
         Submission savedSubmission = submissionRepository.save(submission);
         submitToJudge(savedSubmission, language, request.sourceCode(), judgingData);
+        dailyStreakService.recordTodaySubmission(memberId);
         return SubmissionResponse.from(savedSubmission);
     }
 
@@ -132,6 +135,7 @@ public class SubmissionService {
         SubmissionLanguage language = SubmissionLanguage.from(request.language());
         submission.updateForRejudge(language, request.sourceCode(), judgingData.testCases().size());
         submitToJudge(submission, language, request.sourceCode(), judgingData);
+        dailyStreakService.recordTodaySubmission(memberId);
         return SubmissionResponse.from(submission);
     }
 

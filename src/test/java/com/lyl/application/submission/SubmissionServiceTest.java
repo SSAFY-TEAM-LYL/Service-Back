@@ -13,6 +13,7 @@ import com.lyl.domain.problem.ProblemPublicationRepository;
 import com.lyl.domain.problem.ProblemSummary;
 import com.lyl.domain.problem.ProblemTestCase;
 import com.lyl.domain.problem.exception.ProblemNotFoundException;
+import com.lyl.domain.streak.DailyStreakRepository;
 import com.lyl.domain.submission.exception.SubmissionNotFoundException;
 import com.lyl.presentation.common.CursorPageResponse;
 import com.lyl.domain.submission.SubmissionStatus;
@@ -28,6 +29,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,6 +59,9 @@ class SubmissionServiceTest {
     @Autowired
     private FakeJudge0Client judge0Client;
 
+    @Autowired
+    private DailyStreakRepository dailyStreakRepository;
+
     @BeforeEach
     void setUp() {
         problemBankProblemRepository.clear();
@@ -80,6 +86,9 @@ class SubmissionServiceTest {
         assertThat(response.testCaseResults())
                 .extracting(result -> result.status())
                 .containsOnly(SubmissionStatus.JUDGING);
+        assertThat(dailyStreakRepository.findAllByMemberId(member.getId()))
+                .extracting(streak -> streak.getStreakDate())
+                .contains(LocalDate.now(ZoneId.of("Asia/Seoul")));
     }
 
     @Test
