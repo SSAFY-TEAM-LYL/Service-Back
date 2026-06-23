@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lyl.domain.problem.ProblemAlgorithm;
 import com.lyl.domain.problem.ProblemBankProblemRepository;
 import com.lyl.domain.problem.ProblemConstraint;
 import com.lyl.domain.problem.ProblemDetail;
@@ -45,7 +46,7 @@ public class ProblemBankJdbcProblemRepository implements ProblemBankProblemRepos
     public List<ProblemSummary> findPublishedSummaries(int offset, int size) {
         try {
             return jdbcTemplate.query("""
-                            select id, title, time_limit_ms, created_at
+                            select id, problem_number, title, difficulty, time_limit_ms, created_at
                             from problems
                             order by created_at desc, id desc
                             limit :limit offset :offset
@@ -68,7 +69,7 @@ public class ProblemBankJdbcProblemRepository implements ProblemBankProblemRepos
         }
         try {
             return jdbcTemplate.query("""
-                            select id, title, time_limit_ms, created_at
+                            select id, problem_number, title, difficulty, time_limit_ms, created_at
                             from problems
                             where id in (:problemIds)
                             """,
@@ -81,11 +82,48 @@ public class ProblemBankJdbcProblemRepository implements ProblemBankProblemRepos
     }
 
     @Override
+    public List<ProblemSummary> findSummariesByIds(
+            List<String> problemIds,
+            String difficultyTier,
+            String algorithm,
+            int offset,
+            int size
+    ) {
+        if (problemIds.isEmpty()) {
+            return List.of();
+        }
+        try {
+            MapSqlParameterSource params = new MapSqlParameterSource()
+                    .addValue("problemIds", problemIds)
+                    .addValue("limit", size)
+                    .addValue("offset", offset);
+            StringBuilder sql = new StringBuilder("""
+                    select distinct p.id, p.problem_number, p.title, p.difficulty, p.time_limit_ms, p.created_at
+                    from problems p
+                    """);
+            if (algorithm != null && !algorithm.isBlank()) {
+                sql.append(" join problem_algorithms pa on pa.problem_id = p.id ");
+                sql.append(" and lower(pa.algorithm) = lower(:algorithm) ");
+                params.addValue("algorithm", algorithm.trim());
+            }
+            sql.append(" where p.id in (:problemIds) ");
+            if (difficultyTier != null && !difficultyTier.isBlank()) {
+                sql.append(" and lower(p.difficulty) like lower(:difficultyPrefix) ");
+                params.addValue("difficultyPrefix", difficultyTier.trim() + " %");
+            }
+            sql.append(" order by p.problem_number asc limit :limit offset :offset ");
+            return jdbcTemplate.query(sql.toString(), params, (rs, rowNum) -> toSummary(rs));
+        } catch (DataAccessException e) {
+            throw new ProblemBankUnavailableException();
+        }
+    }
+
+    @Override
     public Optional<ProblemDetail> findDetailById(String problemId) {
         try {
             List<ProblemDetail> details = jdbcTemplate.query("""
-                            select id, title, description, input_format, output_format,
-                                   constraints, samples, time_limit_ms
+                            select id, problem_number, title, description, input_format, output_format,
+                                   difficulty, constraints, samples, time_limit_ms
                             from problems
                             where id = :problemId
                             """,
@@ -93,6 +131,39 @@ public class ProblemBankJdbcProblemRepository implements ProblemBankProblemRepos
                     (rs, rowNum) -> toDetail(rs)
             );
             return details.stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new ProblemBankUnavailableException();
+        }
+    }
+
+    @Override
+    public Optional<String> findDifficultyById(String problemId) {
+        try {
+            List<String> difficulties = jdbcTemplate.query("""
+                            select difficulty
+                            from problems
+                            where id = :problemId
+                            """,
+                    Map.of("problemId", problemId),
+                    (rs, rowNum) -> rs.getString("difficulty")
+            );
+            return difficulties.stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new ProblemBankUnavailableException();
+        }
+    }
+
+    @Override
+    public List<ProblemAlgorithm> findAlgorithms() {
+        try {
+            return jdbcTemplate.query("""
+                            select distinct algorithm
+                            from problem_algorithms
+                            order by algorithm
+                            """,
+                    Map.of(),
+                    (rs, rowNum) -> toAlgorithm(rs.getString("algorithm"))
+            );
         } catch (DataAccessException e) {
             throw new ProblemBankUnavailableException();
         }
@@ -135,7 +206,9 @@ public class ProblemBankJdbcProblemRepository implements ProblemBankProblemRepos
     private ProblemSummary toSummary(ResultSet rs) throws SQLException {
         return new ProblemSummary(
                 rs.getString("id"),
+                rs.getObject("problem_number", Long.class),
                 rs.getString("title"),
+                rs.getString("difficulty"),
                 rs.getObject("time_limit_ms", Integer.class),
                 rs.getObject("created_at", OffsetDateTime.class)
         );
@@ -144,14 +217,41 @@ public class ProblemBankJdbcProblemRepository implements ProblemBankProblemRepos
     private ProblemDetail toDetail(ResultSet rs) throws SQLException {
         return new ProblemDetail(
                 rs.getString("id"),
+                rs.getObject("problem_number", Long.class),
                 rs.getString("title"),
                 rs.getString("description"),
                 rs.getString("input_format"),
                 rs.getString("output_format"),
+                rs.getString("difficulty"),
                 parseConstraints(rs.getString("constraints")),
                 parseSamples(rs.getString("samples")),
                 rs.getObject("time_limit_ms", Integer.class)
         );
+    }
+
+    private ProblemAlgorithm toAlgorithm(String code) {
+        return new ProblemAlgorithm(code, switch (code) {
+            case "dijkstra" -> "Dijkstra";
+            case "bfs" -> "BFS";
+            case "topological_sort" -> "Topological Sort";
+            case "bellman_ford" -> "Bellman-Ford";
+            case "floyd_warshall" -> "Floyd-Warshall";
+            case "kruskal_mst" -> "Kruskal MST";
+            case "max_flow" -> "Max Flow";
+            case "binary_search" -> "Binary Search";
+            case "lis" -> "LIS";
+            case "two_sum" -> "Two Sum";
+            case "sort_cluster" -> "Sort cluster";
+            case "string_match_cluster" -> "String Match cluster";
+            case "segtree" -> "Segment Tree";
+            case "heap" -> "Heap (Min-PQ)";
+            case "fenwick" -> "Fenwick Tree (BIT)";
+            case "union_find" -> "Union-Find";
+            case "knapsack_01" -> "Knapsack 0/1";
+            case "coin_change" -> "Coin Change";
+            case "sieve" -> "Sieve of Eratosthenes";
+            default -> code;
+        });
     }
 
     private List<ProblemConstraint> parseConstraints(String json) {

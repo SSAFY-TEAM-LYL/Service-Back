@@ -54,6 +54,7 @@ public class SubmissionService {
     private final Judge0Client judge0Client;
     private final CursorCodec cursorCodec;
     private final DailyStreakService dailyStreakService;
+    private final SubmissionRewardService submissionRewardService;
 
     @Transactional
     public SubmissionResponse createSubmission(String problemId, SubmissionCreateRequest request, Long memberId) {
@@ -248,6 +249,12 @@ public class SubmissionService {
                 .allMatch(SubmissionTestCaseResult::isCompleted);
         if (allCompleted) {
             submission.aggregateCompletedResults();
+            if (submission.getStatus() == SubmissionStatus.ACCEPTED) {
+                submissionRewardService.rewardAcceptedProblem(
+                        submission.getMember().getId(),
+                        submission.getProblemId()
+                );
+            }
         }
     }
 

@@ -69,7 +69,9 @@ public class AuthService {
                 userPrincipal.getEmail(),
                 userPrincipal.getNickname(),
                 userPrincipal.getProfileImageUrl(),
-                userPrincipal.getRole()
+                userPrincipal.getRole(),
+                userPrincipal.getXp(),
+                userPrincipal.getLevel()
         );
         return new AuthResponse(token, user);
     }
