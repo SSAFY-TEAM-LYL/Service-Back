@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.lyl.domain.member.Member;
 import com.lyl.domain.member.MemberRepository;
+import com.lyl.domain.problem.ProblemAlgorithm;
 import com.lyl.domain.problem.ProblemBankProblemRepository;
 import com.lyl.domain.problem.ProblemDetail;
 import com.lyl.domain.problem.ProblemJudgingData;
@@ -105,9 +106,39 @@ class SubmissionServiceTest {
         submissionService.refreshInProgressSubmissions(20);
 
         SubmissionResponse response = submissionService.findSubmission(created.id(), member.getId());
+        Member rewardedMember = memberRepository.findById(member.getId()).orElseThrow();
         assertThat(response.status()).isEqualTo(SubmissionStatus.ACCEPTED);
         assertThat(response.passedTestCount()).isEqualTo(2);
         assertThat(response.judgedAt()).isNotNull();
+        assertThat(rewardedMember.getXp()).isEqualTo(20);
+        assertThat(rewardedMember.getLevel()).isEqualTo(1);
+    }
+
+    @Test
+    void acceptedSameProblemRewardsXpOnlyOnce() {
+        Member member = saveMember("submitter9@example.com", "submitter9");
+        String problemId = "99999999-2222-4333-8444-555555555555";
+        publishProblemWithTwoTestCases(problemId);
+        SubmissionResponse first = submissionService.createSubmission(
+                problemId,
+                new SubmissionCreateRequest("PYTHON3", "print(3)"),
+                member.getId()
+        );
+        judge0Client.completeAll(SubmissionStatus.ACCEPTED);
+        submissionService.refreshInProgressSubmissions(20);
+
+        SubmissionResponse second = submissionService.createSubmission(
+                problemId,
+                new SubmissionCreateRequest("PYTHON3", "print(3)"),
+                member.getId()
+        );
+        judge0Client.completeAll(SubmissionStatus.ACCEPTED);
+        submissionService.refreshInProgressSubmissions(20);
+
+        Member rewardedMember = memberRepository.findById(member.getId()).orElseThrow();
+        assertThat(first.status()).isEqualTo(SubmissionStatus.JUDGING);
+        assertThat(second.status()).isEqualTo(SubmissionStatus.JUDGING);
+        assertThat(rewardedMember.getXp()).isEqualTo(20);
     }
 
     @Test
@@ -253,6 +284,7 @@ class SubmissionServiceTest {
                         new ProblemTestCase(1, "2 3\n", "5\n", "medium")
                 )
         ));
+        problemBankProblemRepository.addDifficulty(problemId, "Bronze III");
     }
 
     @TestConfiguration
@@ -274,6 +306,7 @@ class SubmissionServiceTest {
     static class FakeProblemBankProblemRepository implements ProblemBankProblemRepository {
 
         private final Map<String, ProblemJudgingData> judgingData = new LinkedHashMap<>();
+        private final Map<String, String> difficulties = new LinkedHashMap<>();
 
         @Override
         public List<ProblemSummary> findPublishedSummaries(int offset, int size) {
@@ -286,13 +319,38 @@ class SubmissionServiceTest {
         }
 
         @Override
+        public List<ProblemSummary> findSummariesByIds(
+                List<String> problemIds,
+                String difficultyTier,
+                String algorithm,
+                int offset,
+                int size
+        ) {
+            return List.of();
+        }
+
+        @Override
         public Optional<ProblemDetail> findDetailById(String problemId) {
             return Optional.empty();
         }
 
         @Override
+        public Optional<String> findDifficultyById(String problemId) {
+            return Optional.ofNullable(difficulties.get(problemId));
+        }
+
+        @Override
+        public List<ProblemAlgorithm> findAlgorithms() {
+            return List.of();
+        }
+
+        @Override
         public Optional<ProblemJudgingData> findJudgingDataById(String problemId) {
             return Optional.ofNullable(judgingData.get(problemId));
+        }
+
+        void addDifficulty(String problemId, String difficulty) {
+            difficulties.put(problemId, difficulty);
         }
 
         void addJudgingData(ProblemJudgingData data) {
@@ -301,6 +359,7 @@ class SubmissionServiceTest {
 
         void clear() {
             judgingData.clear();
+            difficulties.clear();
         }
     }
 

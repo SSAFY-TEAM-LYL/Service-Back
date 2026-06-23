@@ -39,6 +39,11 @@ public class ProblemPublicationRepositoryAdapter implements ProblemPublicationRe
     }
 
     @Override
+    public List<String> findAllPublishedProblemIds() {
+        return repository.findAllPublishedProblemIds();
+    }
+
+    @Override
     public List<ProblemPublication> findPublishedPage(LocalDateTime cursorCreatedAt, Long cursorId, int size) {
         return repository.findPublishedCursorPage(cursorCreatedAt, cursorId, PageRequest.of(0, size));
     }

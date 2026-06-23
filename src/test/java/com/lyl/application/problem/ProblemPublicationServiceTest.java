@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.lyl.domain.member.Member;
 import com.lyl.domain.member.MemberRepository;
 import com.lyl.domain.member.Role;
+import com.lyl.domain.problem.ProblemAlgorithm;
 import com.lyl.domain.problem.ProblemBankProblemRepository;
 import com.lyl.domain.problem.ProblemDetail;
 import com.lyl.domain.problem.ProblemJudgingData;
@@ -102,13 +103,17 @@ class ProblemPublicationServiceTest {
         String unpublishedProblemId = "88888888-8888-4888-8888-888888888888";
         problemBankProblemRepository.addSummary(new ProblemSummary(
                 publishedProblemId,
+                1001L,
                 "공개된 문제",
+                "Silver III",
                 1000,
                 OffsetDateTime.parse("2026-06-15T01:00:00Z")
         ));
         problemBankProblemRepository.addSummary(new ProblemSummary(
                 unpublishedProblemId,
+                1002L,
                 "등록 가능한 문제",
+                "Gold IV",
                 2000,
                 OffsetDateTime.parse("2026-06-15T02:00:00Z")
         ));
@@ -202,8 +207,32 @@ class ProblemPublicationServiceTest {
         }
 
         @Override
+        public List<ProblemSummary> findSummariesByIds(
+                List<String> problemIds,
+                String difficultyTier,
+                String algorithm,
+                int offset,
+                int size
+        ) {
+            return findSummariesByIds(problemIds).stream()
+                    .skip(offset)
+                    .limit(size)
+                    .toList();
+        }
+
+        @Override
         public Optional<ProblemDetail> findDetailById(String problemId) {
             return Optional.empty();
+        }
+
+        @Override
+        public Optional<String> findDifficultyById(String problemId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public List<ProblemAlgorithm> findAlgorithms() {
+            return List.of();
         }
 
         @Override

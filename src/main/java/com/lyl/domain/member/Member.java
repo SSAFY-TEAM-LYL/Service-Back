@@ -39,6 +39,12 @@ public class Member extends BaseEntity {
     @Column(nullable = false, length = 20)
     private Role role;
 
+    @Column(nullable = false)
+    private int xp;
+
+    @Column(nullable = false)
+    private int level;
+
     public Member(String email, String nickname, String password) {
         this(email, nickname, password, Role.USER);
     }
@@ -57,6 +63,8 @@ public class Member extends BaseEntity {
         this.password = password;
         this.profileImageUrl = profileImageUrl;
         this.role = role;
+        this.xp = 0;
+        this.level = 1;
     }
 
     public void updateProfile(String nickname, String profileImageUrl) {
@@ -66,5 +74,13 @@ public class Member extends BaseEntity {
 
     public void updatePassword(String password) {
         this.password = password;
+    }
+
+    public void addXp(int xp) {
+        if (xp <= 0) {
+            return;
+        }
+        this.xp += xp;
+        this.level = (this.xp / 50) + 1;
     }
 }

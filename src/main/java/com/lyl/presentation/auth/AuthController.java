@@ -58,7 +58,9 @@ public class AuthController {
                 userPrincipal.getEmail(),
                 userPrincipal.getNickname(),
                 userPrincipal.getProfileImageUrl(),
-                userPrincipal.getRole()
+                userPrincipal.getRole(),
+                userPrincipal.getXp(),
+                userPrincipal.getLevel()
         );
         return ResponseEntity.ok(ApiResponse.success(response));
     }

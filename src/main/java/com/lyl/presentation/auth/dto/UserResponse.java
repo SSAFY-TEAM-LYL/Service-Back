@@ -8,7 +8,9 @@ public record UserResponse(
         String email,
         String nickname,
         String profileImageUrl,
-        Role role
+        Role role,
+        int xp,
+        int level
 ) {
 
     public static UserResponse from(Member member) {
@@ -17,7 +19,9 @@ public record UserResponse(
                 member.getEmail(),
                 member.getNickname(),
                 member.getProfileImageUrl(),
-                member.getRole()
+                member.getRole(),
+                member.getXp(),
+                member.getLevel()
         );
     }
 }

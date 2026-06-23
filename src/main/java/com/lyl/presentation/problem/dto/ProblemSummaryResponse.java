@@ -5,7 +5,9 @@ import java.time.OffsetDateTime;
 
 public record ProblemSummaryResponse(
         String id,
+        Long problemNumber,
         String title,
+        String difficulty,
         Integer timeLimitMs,
         OffsetDateTime createdAt
 ) {
@@ -13,7 +15,9 @@ public record ProblemSummaryResponse(
     public static ProblemSummaryResponse from(ProblemSummary summary) {
         return new ProblemSummaryResponse(
                 summary.id(),
+                summary.problemNumber(),
                 summary.title(),
+                summary.difficulty(),
                 summary.timeLimitMs(),
                 summary.createdAt()
         );

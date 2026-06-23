@@ -1,6 +1,7 @@
 package com.lyl.infrastructure.problem;
 
 import com.lyl.domain.problem.ProblemBankProblemRepository;
+import com.lyl.domain.problem.ProblemAlgorithm;
 import com.lyl.domain.problem.ProblemDetail;
 import com.lyl.domain.problem.ProblemJudgingData;
 import com.lyl.domain.problem.ProblemSummary;
@@ -23,7 +24,28 @@ public class UnavailableProblemBankProblemRepository implements ProblemBankProbl
     }
 
     @Override
+    public List<ProblemSummary> findSummariesByIds(
+            List<String> problemIds,
+            String difficultyTier,
+            String algorithm,
+            int offset,
+            int size
+    ) {
+        throw new ProblemBankUnavailableException();
+    }
+
+    @Override
     public Optional<ProblemDetail> findDetailById(String problemId) {
+        throw new ProblemBankUnavailableException();
+    }
+
+    @Override
+    public Optional<String> findDifficultyById(String problemId) {
+        throw new ProblemBankUnavailableException();
+    }
+
+    @Override
+    public List<ProblemAlgorithm> findAlgorithms() {
         throw new ProblemBankUnavailableException();
     }
 

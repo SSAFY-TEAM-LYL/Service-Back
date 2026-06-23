@@ -18,16 +18,20 @@ public class UserPrincipal implements UserDetails {
     private final String profileImageUrl;
     private final String password;
     private final Role role;
+    private final int xp;
+    private final int level;
     private final Collection<? extends GrantedAuthority> authorities;
 
     private UserPrincipal(Long id, String email, String nickname, String profileImageUrl, String password,
-                          Role role, Collection<? extends GrantedAuthority> authorities) {
+                          Role role, int xp, int level, Collection<? extends GrantedAuthority> authorities) {
         this.id = id;
         this.email = email;
         this.nickname = nickname;
         this.profileImageUrl = profileImageUrl;
         this.password = password;
         this.role = role;
+        this.xp = xp;
+        this.level = level;
         this.authorities = authorities;
     }
 
@@ -39,6 +43,8 @@ public class UserPrincipal implements UserDetails {
                 member.getProfileImageUrl(),
                 member.getPassword(),
                 member.getRole(),
+                member.getXp(),
+                member.getLevel(),
                 List.of(new SimpleGrantedAuthority("ROLE_" + member.getRole().name()))
         );
     }

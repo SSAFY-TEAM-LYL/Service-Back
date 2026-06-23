@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.lyl.domain.problem.ProblemBankProblemRepository;
+import com.lyl.domain.problem.ProblemAlgorithm;
 import com.lyl.domain.problem.ProblemConstraint;
 import com.lyl.domain.problem.ProblemDetail;
 import com.lyl.domain.problem.ProblemJudgingData;
@@ -54,18 +55,22 @@ class ProblemQueryServiceTest {
         problemPublicationRepository.save(new ProblemPublication(secondProblemId));
         problemBankProblemRepository.addSummary(new ProblemSummary(
                 firstProblemId,
+                1001L,
                 "첫 번째 문제",
+                "Silver III",
                 1000,
                 OffsetDateTime.parse("2026-06-15T01:00:00Z")
         ));
         problemBankProblemRepository.addSummary(new ProblemSummary(
                 secondProblemId,
+                1002L,
                 "두 번째 문제",
+                "Gold IV",
                 2000,
                 OffsetDateTime.parse("2026-06-15T02:00:00Z")
         ));
 
-        CursorPageResponse<ProblemSummaryResponse> response = problemQueryService.findProblems(null, 20);
+        CursorPageResponse<ProblemSummaryResponse> response = problemQueryService.findProblems(null, 20, null, null);
 
         assertThat(response.items())
                 .extracting(ProblemSummaryResponse::id)
@@ -81,10 +86,12 @@ class ProblemQueryServiceTest {
         problemPublicationRepository.save(new ProblemPublication(problemId));
         problemBankProblemRepository.addDetail(new ProblemDetail(
                 problemId,
+                1003L,
                 "상세 문제",
                 "문제 설명",
                 "입력 형식",
                 "출력 형식",
+                "Gold V",
                 List.of(new ProblemConstraint("N", 1L, 100L, "N의 범위")),
                 List.of(new ProblemSample("1 2\n", "3\n", "기본 예시")),
                 1000
@@ -93,7 +100,9 @@ class ProblemQueryServiceTest {
         ProblemDetailResponse response = problemQueryService.findProblem(problemId);
 
         assertThat(response.id()).isEqualTo(problemId);
+        assertThat(response.problemNumber()).isEqualTo(1003L);
         assertThat(response.title()).isEqualTo("상세 문제");
+        assertThat(response.difficulty()).isEqualTo("Gold V");
         assertThat(response.constraints()).hasSize(1);
         assertThat(response.samples()).hasSize(1);
     }
@@ -103,10 +112,12 @@ class ProblemQueryServiceTest {
         String problemId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
         problemBankProblemRepository.addDetail(new ProblemDetail(
                 problemId,
+                1004L,
                 "미공개 문제",
                 "문제 설명",
                 "입력 형식",
                 "출력 형식",
+                "Bronze V",
                 List.of(),
                 List.of(),
                 1000
@@ -152,8 +163,34 @@ class ProblemQueryServiceTest {
         }
 
         @Override
+        public List<ProblemSummary> findSummariesByIds(
+                List<String> problemIds,
+                String difficultyTier,
+                String algorithm,
+                int offset,
+                int size
+        ) {
+            return findSummariesByIds(problemIds).stream()
+                    .filter(summary -> difficultyTier == null || summary.difficulty().toLowerCase().startsWith(difficultyTier.toLowerCase()))
+                    .skip(offset)
+                    .limit(size)
+                    .toList();
+        }
+
+        @Override
         public Optional<ProblemDetail> findDetailById(String problemId) {
             return Optional.ofNullable(details.get(problemId));
+        }
+
+        @Override
+        public Optional<String> findDifficultyById(String problemId) {
+            return Optional.ofNullable(details.get(problemId))
+                    .map(ProblemDetail::difficulty);
+        }
+
+        @Override
+        public List<ProblemAlgorithm> findAlgorithms() {
+            return List.of();
         }
 
         @Override
@@ -173,7 +210,9 @@ class ProblemQueryServiceTest {
             details.put(detail.id(), detail);
             summaries.putIfAbsent(detail.id(), new ProblemSummary(
                     detail.id(),
+                    detail.problemNumber(),
                     detail.title(),
+                    detail.difficulty(),
                     detail.timeLimitMs(),
                     OffsetDateTime.parse("2026-06-15T00:00:00Z")
             ));
