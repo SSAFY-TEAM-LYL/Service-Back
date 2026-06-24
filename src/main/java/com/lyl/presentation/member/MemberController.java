@@ -5,8 +5,7 @@ import com.lyl.application.member.MemberSolvedStatsService;
 import com.lyl.infrastructure.security.UserPrincipal;
 import com.lyl.presentation.auth.dto.UserResponse;
 import com.lyl.presentation.common.ApiResponse;
-import com.lyl.presentation.common.PageResponse;
-import com.lyl.presentation.member.dto.MemberRankingResponse;
+import com.lyl.presentation.member.dto.MemberRankingSummaryResponse;
 import com.lyl.presentation.member.dto.MemberSolvedStatsResponse;
 import com.lyl.presentation.member.dto.MemberUpdateRequest;
 import com.lyl.presentation.member.dto.MemberWithdrawalRequest;
@@ -19,7 +18,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -31,11 +29,11 @@ public class MemberController {
     private final MemberSolvedStatsService solvedStatsService;
 
     @GetMapping("/rankings")
-    public ResponseEntity<ApiResponse<PageResponse<MemberRankingResponse>>> getRankings(
-            @RequestParam(required = false, defaultValue = "0") Integer page,
-            @RequestParam(required = false, defaultValue = "50") Integer size
+    public ResponseEntity<ApiResponse<MemberRankingSummaryResponse>> getRankings(
+            @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
-        return ResponseEntity.ok(ApiResponse.success(memberService.findRankings(page, size)));
+        Long currentMemberId = userPrincipal == null ? null : userPrincipal.getId();
+        return ResponseEntity.ok(ApiResponse.success(memberService.findRankings(currentMemberId)));
     }
 
     @GetMapping("/me")

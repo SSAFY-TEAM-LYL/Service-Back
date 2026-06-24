@@ -5,8 +5,8 @@ import com.lyl.domain.member.MemberRepository;
 import com.lyl.domain.member.OAuthAccountRepository;
 import com.lyl.domain.member.exception.MemberNotFoundException;
 import com.lyl.presentation.auth.dto.UserResponse;
-import com.lyl.presentation.common.PageResponse;
 import com.lyl.presentation.member.dto.MemberRankingResponse;
+import com.lyl.presentation.member.dto.MemberRankingSummaryResponse;
 import com.lyl.presentation.member.dto.MemberUpdateRequest;
 import com.lyl.presentation.member.dto.MemberWithdrawalRequest;
 import java.util.List;
@@ -21,8 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class MemberService {
 
-    private static final int DEFAULT_RANKING_PAGE_SIZE = 50;
-    private static final int MAX_RANKING_PAGE_SIZE = 100;
+    private static final int RANKING_TOP_LIMIT = 10;
 
     private final MemberRepository memberRepository;
     private final OAuthAccountRepository oauthAccountRepository;
@@ -35,18 +34,15 @@ public class MemberService {
     }
 
     @Transactional(readOnly = true)
-    public PageResponse<MemberRankingResponse> findRankings(Integer page, Integer size) {
-        int pageNumber = normalizePage(page);
-        int pageSize = normalizeRankingSize(size);
-        List<Member> pageMembers = memberRepository.findRankingPage(pageNumber, pageSize);
-        boolean hasNext = (long) (pageNumber + 1) * pageSize < memberRepository.countActiveMembers();
-        List<MemberRankingResponse> items = IntStream.range(0, pageMembers.size())
+    public MemberRankingSummaryResponse findRankings(Long currentMemberId) {
+        List<Member> topMembers = memberRepository.findRankingPage(0, RANKING_TOP_LIMIT);
+        List<MemberRankingResponse> items = IntStream.range(0, topMembers.size())
                 .mapToObj(index -> MemberRankingResponse.from(
-                        pageMembers.get(index),
-                        pageNumber * pageSize + index + 1
+                        topMembers.get(index),
+                        index + 1
                 ))
                 .toList();
-        return new PageResponse<>(items, pageNumber, pageSize, hasNext);
+        return new MemberRankingSummaryResponse(items, findCurrentMemberRanking(currentMemberId));
     }
 
     @Transactional
@@ -85,18 +81,17 @@ public class MemberService {
                 .orElseThrow(MemberNotFoundException::new);
     }
 
-    private int normalizePage(Integer page) {
-        if (page == null) {
-            return 0;
+    private MemberRankingResponse findCurrentMemberRanking(Long currentMemberId) {
+        if (currentMemberId == null) {
+            return null;
         }
-        return Math.max(page, 0);
-    }
 
-    private int normalizeRankingSize(Integer size) {
-        if (size == null) {
-            return DEFAULT_RANKING_PAGE_SIZE;
-        }
-        return Math.min(Math.max(size, 1), MAX_RANKING_PAGE_SIZE);
+        return memberRepository.findById(currentMemberId)
+                .map(member -> MemberRankingResponse.from(
+                        member,
+                        Math.toIntExact(memberRepository.countActiveMembersAheadOf(member.getXp(), member.getId()) + 1)
+                ))
+                .orElse(null);
     }
 
     private String normalizeNickname(String nickname, String currentNickname) {

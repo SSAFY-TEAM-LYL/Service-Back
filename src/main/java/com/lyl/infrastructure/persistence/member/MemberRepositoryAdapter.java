@@ -40,6 +40,11 @@ public class MemberRepositoryAdapter implements MemberRepository {
     }
 
     @Override
+    public long countActiveMembersAheadOf(int xp, Long memberId) {
+        return repository.countActiveMembersAheadOf(xp, memberId);
+    }
+
+    @Override
     public long countActiveMembers() {
         return repository.countByDeletedAtIsNull();
     }

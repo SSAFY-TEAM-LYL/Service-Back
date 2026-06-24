@@ -30,8 +30,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
+@Transactional
 class AuthServiceTest {
 
     @Autowired
@@ -105,27 +107,64 @@ class AuthServiceTest {
     @Test
     void findRankingsOrdersActiveMembersByXpDescending() {
         Member first = new Member("rank-first@example.com", "first", passwordEncoder.encode("password123"));
-        first.addXp(150);
+        first.addXp(20000);
         Member second = new Member("rank-second@example.com", "second", passwordEncoder.encode("password123"));
-        second.addXp(80);
+        second.addXp(19900);
         Member deleted = new Member("rank-deleted@example.com", "deleted", passwordEncoder.encode("password123"));
-        deleted.addXp(300);
+        deleted.addXp(21000);
         deleted.delete();
         memberRepository.save(second);
         memberRepository.save(first);
         memberRepository.save(deleted);
 
-        var response = memberService.findRankings(0, 10);
+        var response = memberService.findRankings(null);
 
         assertThat(response.items())
                 .extracting(item -> item.rank(), item -> item.nickname(), item -> item.xp(), item -> item.level())
                 .containsSubsequence(
-                        org.assertj.core.groups.Tuple.tuple(1, "first", 150, 4),
-                        org.assertj.core.groups.Tuple.tuple(2, "second", 80, 2)
+                        org.assertj.core.groups.Tuple.tuple(1, "first", 20000, 401),
+                        org.assertj.core.groups.Tuple.tuple(2, "second", 19900, 399)
                 );
         assertThat(response.items())
                 .extracting(item -> item.nickname())
                 .doesNotContain("deleted");
+        assertThat(response.myRanking()).isNull();
+    }
+
+    @Test
+    void findRankingsReturnsCurrentMemberRankingWhenOutsideTopTen() {
+        for (int i = 0; i < 10; i++) {
+            Member topMember = new Member(
+                    "rank-top-" + i + "@example.com",
+                    "top" + i,
+                    passwordEncoder.encode("password123")
+            );
+            topMember.addXp(30000 - i);
+            memberRepository.save(topMember);
+        }
+        Member currentMember = new Member(
+                "rank-current@example.com",
+                "current",
+                passwordEncoder.encode("password123")
+        );
+        currentMember.addXp(29900);
+        memberRepository.save(currentMember);
+
+        var response = memberService.findRankings(currentMember.getId());
+
+        assertThat(response.items()).hasSize(10);
+        assertThat(response.items())
+                .extracting(item -> item.nickname())
+                .doesNotContain("current");
+        assertThat(response.myRanking())
+                .extracting(
+                        item -> item.rank(),
+                        item -> item.memberId(),
+                        item -> item.nickname(),
+                        item -> item.xp(),
+                        item -> item.level()
+                )
+                .containsExactly(11, currentMember.getId(), "current", 29900, 599);
     }
 
     @Test

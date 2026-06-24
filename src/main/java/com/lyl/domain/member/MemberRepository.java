@@ -15,6 +15,8 @@ public interface MemberRepository {
 
     List<Member> findRankingPage(int page, int size);
 
+    long countActiveMembersAheadOf(int xp, Long memberId);
+
     long countActiveMembers();
 
     boolean existsByEmail(String email);
