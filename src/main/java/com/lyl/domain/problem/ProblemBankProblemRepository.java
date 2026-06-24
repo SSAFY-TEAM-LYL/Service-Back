@@ -9,7 +9,14 @@ public interface ProblemBankProblemRepository {
 
     List<ProblemSummary> findSummariesByIds(List<String> problemIds);
 
-    List<ProblemSummary> findSummariesByIds(List<String> problemIds, String difficultyTier, String algorithm, int offset, int size);
+    List<ProblemSummary> findSummariesByIds(
+            List<String> problemIds,
+            String difficultyTier,
+            String algorithm,
+            String query,
+            int offset,
+            int size
+    );
 
     Optional<ProblemDetail> findDetailById(String problemId);
 

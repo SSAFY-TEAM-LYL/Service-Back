@@ -16,6 +16,8 @@ public interface ProblemPublicationRepository {
 
     List<String> findAllPublishedProblemIds();
 
+    long countPublishedProblems();
+
     List<ProblemPublication> findPublishedPage(LocalDateTime cursorCreatedAt, Long cursorId, int size);
 
     void unpublish(ProblemPublication publication);

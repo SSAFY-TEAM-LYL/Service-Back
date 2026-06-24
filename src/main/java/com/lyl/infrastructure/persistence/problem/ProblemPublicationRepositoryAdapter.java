@@ -44,6 +44,11 @@ public class ProblemPublicationRepositoryAdapter implements ProblemPublicationRe
     }
 
     @Override
+    public long countPublishedProblems() {
+        return repository.countByDeletedAtIsNull();
+    }
+
+    @Override
     public List<ProblemPublication> findPublishedPage(LocalDateTime cursorCreatedAt, Long cursorId, int size) {
         return repository.findPublishedCursorPage(cursorCreatedAt, cursorId, PageRequest.of(0, size));
     }

@@ -53,6 +53,11 @@ interface SpringDataSubmissionRepository extends JpaRepository<Submission, Long>
             Pageable pageable
     );
 
+    long countByDeletedAtIsNullAndSubmittedAtGreaterThanEqualAndSubmittedAtLessThan(
+            LocalDateTime startInclusive,
+            LocalDateTime endExclusive
+    );
+
     @EntityGraph(attributePaths = {"member", "testCaseResults"})
     List<Submission> findByIdInAndDeletedAtIsNull(Collection<Long> ids);
 }

@@ -31,6 +31,8 @@ interface SpringDataProblemPublicationRepository extends JpaRepository<ProblemPu
             """)
     List<String> findAllPublishedProblemIds();
 
+    long countByDeletedAtIsNull();
+
     @Query("""
             select p
             from ProblemPublication p

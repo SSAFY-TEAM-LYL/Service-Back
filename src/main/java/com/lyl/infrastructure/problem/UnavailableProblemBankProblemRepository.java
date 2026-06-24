@@ -28,6 +28,7 @@ public class UnavailableProblemBankProblemRepository implements ProblemBankProbl
             List<String> problemIds,
             String difficultyTier,
             String algorithm,
+            String query,
             int offset,
             int size
     ) {

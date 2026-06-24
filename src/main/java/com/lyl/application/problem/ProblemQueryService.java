@@ -6,10 +6,15 @@ import com.lyl.domain.problem.ProblemDetail;
 import com.lyl.domain.problem.ProblemPublicationRepository;
 import com.lyl.domain.problem.ProblemSummary;
 import com.lyl.domain.problem.exception.ProblemNotFoundException;
+import com.lyl.domain.submission.SubmissionRepository;
 import com.lyl.presentation.common.CursorPageResponse;
 import com.lyl.presentation.problem.dto.ProblemAlgorithmResponse;
 import com.lyl.presentation.problem.dto.ProblemDetailResponse;
+import com.lyl.presentation.problem.dto.ProblemServiceSummaryResponse;
 import com.lyl.presentation.problem.dto.ProblemSummaryResponse;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,16 +26,19 @@ public class ProblemQueryService {
 
     private static final int DEFAULT_PAGE_SIZE = 20;
     private static final int MAX_PAGE_SIZE = 100;
+    private static final ZoneId SERVICE_ZONE = ZoneId.of("Asia/Seoul");
 
     private final ProblemPublicationRepository problemPublicationRepository;
     private final ProblemBankProblemRepository problemBankProblemRepository;
+    private final SubmissionRepository submissionRepository;
 
     @Transactional(readOnly = true)
     public CursorPageResponse<ProblemSummaryResponse> findProblems(
             String cursor,
             Integer size,
             String difficulty,
-            String algorithm
+            String algorithm,
+            String query
     ) {
         int pageSize = normalizeSize(size);
         int offset = decodeOffset(cursor);
@@ -39,6 +47,7 @@ public class ProblemQueryService {
                 publishedProblemIds,
                 normalizeDifficulty(difficulty),
                 normalizeAlgorithm(algorithm),
+                normalizeQuery(query),
                 offset,
                 pageSize + 1
         );
@@ -56,6 +65,17 @@ public class ProblemQueryService {
         return ProblemAlgorithmCatalog.supported().stream()
                 .map(ProblemAlgorithmResponse::from)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ProblemServiceSummaryResponse findSummary() {
+        LocalDate today = LocalDate.now(SERVICE_ZONE);
+        LocalDateTime startInclusive = today.atStartOfDay();
+        LocalDateTime endExclusive = today.plusDays(1).atStartOfDay();
+        return new ProblemServiceSummaryResponse(
+                problemPublicationRepository.countPublishedProblems(),
+                submissionRepository.countSubmittedBetween(startInclusive, endExclusive)
+        );
     }
 
     @Transactional(readOnly = true)
@@ -86,6 +106,13 @@ public class ProblemQueryService {
             return null;
         }
         return algorithm.trim();
+    }
+
+    private String normalizeQuery(String query) {
+        if (query == null || query.isBlank()) {
+            return null;
+        }
+        return query.trim();
     }
 
     private int decodeOffset(String cursor) {

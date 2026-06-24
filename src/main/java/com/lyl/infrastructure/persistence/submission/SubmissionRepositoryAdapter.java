@@ -64,6 +64,14 @@ public class SubmissionRepositoryAdapter implements SubmissionRepository {
     }
 
     @Override
+    public long countSubmittedBetween(LocalDateTime startInclusive, LocalDateTime endExclusive) {
+        return repository.countByDeletedAtIsNullAndSubmittedAtGreaterThanEqualAndSubmittedAtLessThan(
+                startInclusive,
+                endExclusive
+        );
+    }
+
+    @Override
     public void delete(Submission submission) {
         submission.delete();
         repository.save(submission);

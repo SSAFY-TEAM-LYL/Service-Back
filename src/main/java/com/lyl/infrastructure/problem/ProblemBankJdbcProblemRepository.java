@@ -86,6 +86,7 @@ public class ProblemBankJdbcProblemRepository implements ProblemBankProblemRepos
             List<String> problemIds,
             String difficultyTier,
             String algorithm,
+            String query,
             int offset,
             int size
     ) {
@@ -110,6 +111,15 @@ public class ProblemBankJdbcProblemRepository implements ProblemBankProblemRepos
             if (difficultyTier != null && !difficultyTier.isBlank()) {
                 sql.append(" and lower(p.difficulty) like lower(:difficultyPrefix) ");
                 params.addValue("difficultyPrefix", difficultyTier.trim() + " %");
+            }
+            if (query != null && !query.isBlank()) {
+                sql.append("""
+                         and (
+                              lower(p.title) like lower(:searchKeyword)
+                              or cast(p.problem_number as text) like :searchKeyword
+                         )
+                        """);
+                params.addValue("searchKeyword", "%" + query.trim() + "%");
             }
             sql.append(" order by p.problem_number asc limit :limit offset :offset ");
             return jdbcTemplate.query(sql.toString(), params, (rs, rowNum) -> toSummary(rs));

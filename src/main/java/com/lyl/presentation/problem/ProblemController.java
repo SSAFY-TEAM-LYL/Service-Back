@@ -5,6 +5,7 @@ import com.lyl.presentation.common.ApiResponse;
 import com.lyl.presentation.common.CursorPageResponse;
 import com.lyl.presentation.problem.dto.ProblemAlgorithmResponse;
 import com.lyl.presentation.problem.dto.ProblemDetailResponse;
+import com.lyl.presentation.problem.dto.ProblemServiceSummaryResponse;
 import com.lyl.presentation.problem.dto.ProblemSummaryResponse;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -27,14 +28,21 @@ public class ProblemController {
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false, defaultValue = "20") Integer size,
             @RequestParam(required = false) String difficulty,
-            @RequestParam(required = false) String algorithm
+            @RequestParam(required = false) String algorithm,
+            @RequestParam(required = false) String query
     ) {
         return ResponseEntity.ok(ApiResponse.success(problemQueryService.findProblems(
                 cursor,
                 size,
                 difficulty,
-                algorithm
+                algorithm,
+                query
         )));
+    }
+
+    @GetMapping("/summary")
+    public ResponseEntity<ApiResponse<ProblemServiceSummaryResponse>> findSummary() {
+        return ResponseEntity.ok(ApiResponse.success(problemQueryService.findSummary()));
     }
 
     @GetMapping("/algorithms")

@@ -211,6 +211,7 @@ class ProblemPublicationServiceTest {
                 List<String> problemIds,
                 String difficultyTier,
                 String algorithm,
+                String query,
                 int offset,
                 int size
         ) {
