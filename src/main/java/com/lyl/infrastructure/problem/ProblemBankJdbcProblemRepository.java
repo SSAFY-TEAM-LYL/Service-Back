@@ -5,11 +5,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lyl.domain.problem.ProblemAlgorithm;
+import com.lyl.domain.problem.ProblemAlgorithmType;
 import com.lyl.domain.problem.ProblemBankProblemRepository;
 import com.lyl.domain.problem.ProblemConstraint;
 import com.lyl.domain.problem.ProblemDetail;
 import com.lyl.domain.problem.ProblemJudgingData;
 import com.lyl.domain.problem.ProblemSample;
+import com.lyl.domain.problem.ProblemSolvedMetadata;
 import com.lyl.domain.problem.ProblemSummary;
 import com.lyl.domain.problem.ProblemTestCase;
 import com.lyl.domain.problem.exception.ProblemBankUnavailableException;
@@ -17,6 +19,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -86,6 +89,7 @@ public class ProblemBankJdbcProblemRepository implements ProblemBankProblemRepos
             List<String> problemIds,
             String difficultyTier,
             String algorithm,
+            String query,
             int offset,
             int size
     ) {
@@ -110,6 +114,15 @@ public class ProblemBankJdbcProblemRepository implements ProblemBankProblemRepos
             if (difficultyTier != null && !difficultyTier.isBlank()) {
                 sql.append(" and lower(p.difficulty) like lower(:difficultyPrefix) ");
                 params.addValue("difficultyPrefix", difficultyTier.trim() + " %");
+            }
+            if (query != null && !query.isBlank()) {
+                sql.append("""
+                         and (
+                              lower(p.title) like lower(:searchKeyword)
+                              or cast(p.problem_number as text) like :searchKeyword
+                         )
+                        """);
+                params.addValue("searchKeyword", "%" + query.trim() + "%");
             }
             sql.append(" order by p.problem_number asc limit :limit offset :offset ");
             return jdbcTemplate.query(sql.toString(), params, (rs, rowNum) -> toSummary(rs));
@@ -148,6 +161,48 @@ public class ProblemBankJdbcProblemRepository implements ProblemBankProblemRepos
                     (rs, rowNum) -> rs.getString("difficulty")
             );
             return difficulties.stream().findFirst();
+        } catch (DataAccessException e) {
+            throw new ProblemBankUnavailableException();
+        }
+    }
+
+    @Override
+    public List<ProblemSolvedMetadata> findSolvedMetadataByIds(List<String> problemIds) {
+        if (problemIds.isEmpty()) {
+            return List.of();
+        }
+        try {
+            List<ProblemSolvedMetadataRow> rows = jdbcTemplate.query("""
+                            select p.id, p.difficulty, pa.algorithm
+                            from problems p
+                            left join problem_algorithms pa on pa.problem_id = p.id
+                            where p.id in (:problemIds)
+                            order by p.id asc, pa.algorithm asc
+                            """,
+                    new MapSqlParameterSource("problemIds", problemIds),
+                    (rs, rowNum) -> new ProblemSolvedMetadataRow(
+                            rs.getString("id"),
+                            rs.getString("difficulty"),
+                            rs.getString("algorithm")
+                    )
+            );
+            Map<String, ProblemSolvedMetadataBuilder> metadataByProblemId = new LinkedHashMap<>();
+            for (ProblemSolvedMetadataRow row : rows) {
+                ProblemSolvedMetadataBuilder builder = metadataByProblemId.computeIfAbsent(
+                        row.problemId(),
+                        key -> new ProblemSolvedMetadataBuilder(row.problemId(), row.difficulty())
+                );
+                if (row.algorithm() != null && !row.algorithm().isBlank()) {
+                    builder.algorithms().add(row.algorithm());
+                }
+            }
+            return metadataByProblemId.values().stream()
+                    .map(builder -> new ProblemSolvedMetadata(
+                            builder.problemId(),
+                            builder.difficulty(),
+                            List.copyOf(builder.algorithms())
+                    ))
+                    .toList();
         } catch (DataAccessException e) {
             throw new ProblemBankUnavailableException();
         }
@@ -230,28 +285,9 @@ public class ProblemBankJdbcProblemRepository implements ProblemBankProblemRepos
     }
 
     private ProblemAlgorithm toAlgorithm(String code) {
-        return new ProblemAlgorithm(code, switch (code) {
-            case "dijkstra" -> "Dijkstra";
-            case "bfs" -> "BFS";
-            case "topological_sort" -> "Topological Sort";
-            case "bellman_ford" -> "Bellman-Ford";
-            case "floyd_warshall" -> "Floyd-Warshall";
-            case "kruskal_mst" -> "Kruskal MST";
-            case "max_flow" -> "Max Flow";
-            case "binary_search" -> "Binary Search";
-            case "lis" -> "LIS";
-            case "two_sum" -> "Two Sum";
-            case "sort_cluster" -> "Sort cluster";
-            case "string_match_cluster" -> "String Match cluster";
-            case "segtree" -> "Segment Tree";
-            case "heap" -> "Heap (Min-PQ)";
-            case "fenwick" -> "Fenwick Tree (BIT)";
-            case "union_find" -> "Union-Find";
-            case "knapsack_01" -> "Knapsack 0/1";
-            case "coin_change" -> "Coin Change";
-            case "sieve" -> "Sieve of Eratosthenes";
-            default -> code;
-        });
+        return ProblemAlgorithmType.fromCode(code)
+                .map(ProblemAlgorithmType::toProblemAlgorithm)
+                .orElse(new ProblemAlgorithm(code, code));
     }
 
     private List<ProblemConstraint> parseConstraints(String json) {
@@ -298,5 +334,23 @@ public class ProblemBankJdbcProblemRepository implements ProblemBankProblemRepos
             @JsonProperty("expected_output") String expectedOutput,
             String description
     ) {
+    }
+
+    private record ProblemSolvedMetadataRow(
+            String problemId,
+            String difficulty,
+            String algorithm
+    ) {
+    }
+
+    private record ProblemSolvedMetadataBuilder(
+            String problemId,
+            String difficulty,
+            List<String> algorithms
+    ) {
+
+        private ProblemSolvedMetadataBuilder(String problemId, String difficulty) {
+            this(problemId, difficulty, new java.util.ArrayList<>());
+        }
     }
 }

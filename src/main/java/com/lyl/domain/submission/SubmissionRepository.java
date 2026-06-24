@@ -22,5 +22,7 @@ public interface SubmissionRepository {
 
     List<Submission> findInProgressSubmissions(int size);
 
+    long countSubmittedBetween(LocalDateTime startInclusive, LocalDateTime endExclusive);
+
     void delete(Submission submission);
 }

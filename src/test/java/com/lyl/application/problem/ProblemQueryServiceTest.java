@@ -3,6 +3,8 @@ package com.lyl.application.problem;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.lyl.domain.member.Member;
+import com.lyl.domain.member.MemberRepository;
 import com.lyl.domain.problem.ProblemBankProblemRepository;
 import com.lyl.domain.problem.ProblemAlgorithm;
 import com.lyl.domain.problem.ProblemConstraint;
@@ -11,10 +13,16 @@ import com.lyl.domain.problem.ProblemJudgingData;
 import com.lyl.domain.problem.ProblemPublication;
 import com.lyl.domain.problem.ProblemPublicationRepository;
 import com.lyl.domain.problem.ProblemSample;
+import com.lyl.domain.problem.ProblemSolvedMetadata;
 import com.lyl.domain.problem.ProblemSummary;
 import com.lyl.domain.problem.exception.ProblemNotFoundException;
+import com.lyl.domain.submission.Submission;
+import com.lyl.domain.submission.SubmissionLanguage;
+import com.lyl.domain.submission.SubmissionRepository;
 import com.lyl.presentation.common.CursorPageResponse;
+import com.lyl.presentation.problem.dto.ProblemAlgorithmResponse;
 import com.lyl.presentation.problem.dto.ProblemDetailResponse;
+import com.lyl.presentation.problem.dto.ProblemServiceSummaryResponse;
 import com.lyl.presentation.problem.dto.ProblemSummaryResponse;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -38,6 +46,12 @@ class ProblemQueryServiceTest {
 
     @Autowired
     private ProblemPublicationRepository problemPublicationRepository;
+
+    @Autowired
+    private SubmissionRepository submissionRepository;
+
+    @Autowired
+    private MemberRepository memberRepository;
 
     @Autowired
     private FakeProblemBankProblemRepository problemBankProblemRepository;
@@ -70,7 +84,7 @@ class ProblemQueryServiceTest {
                 OffsetDateTime.parse("2026-06-15T02:00:00Z")
         ));
 
-        CursorPageResponse<ProblemSummaryResponse> response = problemQueryService.findProblems(null, 20, null, null);
+        CursorPageResponse<ProblemSummaryResponse> response = problemQueryService.findProblems(null, 20, null, null, null);
 
         assertThat(response.items())
                 .extracting(ProblemSummaryResponse::id)
@@ -78,6 +92,84 @@ class ProblemQueryServiceTest {
         assertThat(response.items())
                 .extracting(ProblemSummaryResponse::title)
                 .contains("첫 번째 문제", "두 번째 문제");
+    }
+
+    @Test
+    void findProblemsSearchesByPartialTitleOrProblemNumber() {
+        String firstProblemId = "10101010-1010-4010-8010-101010101010";
+        String secondProblemId = "20202020-2020-4020-8020-202020202020";
+        problemPublicationRepository.save(new ProblemPublication(firstProblemId));
+        problemPublicationRepository.save(new ProblemPublication(secondProblemId));
+        problemBankProblemRepository.addSummary(new ProblemSummary(
+                firstProblemId,
+                2101L,
+                "두 수의 합",
+                "Bronze V",
+                1000,
+                OffsetDateTime.parse("2026-06-15T01:00:00Z")
+        ));
+        problemBankProblemRepository.addSummary(new ProblemSummary(
+                secondProblemId,
+                3102L,
+                "최단 경로",
+                "Gold IV",
+                2000,
+                OffsetDateTime.parse("2026-06-15T02:00:00Z")
+        ));
+
+        CursorPageResponse<ProblemSummaryResponse> titleResponse =
+                problemQueryService.findProblems(null, 20, null, null, "수의");
+        CursorPageResponse<ProblemSummaryResponse> numberResponse =
+                problemQueryService.findProblems(null, 20, null, null, "102");
+
+        assertThat(titleResponse.items())
+                .extracting(ProblemSummaryResponse::id)
+                .containsExactly(firstProblemId);
+        assertThat(numberResponse.items())
+                .extracting(ProblemSummaryResponse::id)
+                .containsExactly(secondProblemId);
+    }
+
+    @Test
+    void findSummaryReturnsPublishedProblemCountAndTodaySubmissionCount() {
+        String problemId = "30303030-3030-4030-8030-303030303030";
+        Member member = memberRepository.save(new Member("summary@example.com", "summaryUser", "encoded-password"));
+        problemPublicationRepository.save(new ProblemPublication(problemId));
+        submissionRepository.save(new Submission(member, problemId, SubmissionLanguage.PYTHON3, "print(1)", 1));
+
+        ProblemServiceSummaryResponse response = problemQueryService.findSummary();
+
+        assertThat(response.publishedProblemCount()).isGreaterThanOrEqualTo(1);
+        assertThat(response.todaySubmissionCount()).isGreaterThanOrEqualTo(1);
+    }
+
+    @Test
+    void findAlgorithmsReturnsSupportedAlgorithmTypesFromEnum() {
+        List<ProblemAlgorithmResponse> response = problemQueryService.findAlgorithms();
+
+        assertThat(response)
+                .extracting(ProblemAlgorithmResponse::code)
+                .containsExactly(
+                        "dijkstra",
+                        "lis",
+                        "segtree",
+                        "two_sum",
+                        "bfs",
+                        "binary_search",
+                        "union_find",
+                        "toposort",
+                        "knapsack",
+                        "sort",
+                        "string_match",
+                        "max_flow",
+                        "sieve",
+                        "bellman_ford",
+                        "floyd_warshall",
+                        "kruskal_mst",
+                        "heap",
+                        "fenwick",
+                        "coin_change"
+                );
     }
 
     @Test
@@ -165,13 +257,17 @@ class ProblemQueryServiceTest {
         @Override
         public List<ProblemSummary> findSummariesByIds(
                 List<String> problemIds,
-                String difficultyTier,
-                String algorithm,
-                int offset,
-                int size
+            String difficultyTier,
+            String algorithm,
+            String query,
+            int offset,
+            int size
         ) {
             return findSummariesByIds(problemIds).stream()
                     .filter(summary -> difficultyTier == null || summary.difficulty().toLowerCase().startsWith(difficultyTier.toLowerCase()))
+                    .filter(summary -> query == null
+                            || summary.title().toLowerCase().contains(query.toLowerCase())
+                            || String.valueOf(summary.problemNumber()).contains(query))
                     .skip(offset)
                     .limit(size)
                     .toList();
@@ -186,6 +282,13 @@ class ProblemQueryServiceTest {
         public Optional<String> findDifficultyById(String problemId) {
             return Optional.ofNullable(details.get(problemId))
                     .map(ProblemDetail::difficulty);
+        }
+
+        @Override
+        public List<ProblemSolvedMetadata> findSolvedMetadataByIds(List<String> problemIds) {
+            return findSummariesByIds(problemIds).stream()
+                    .map(summary -> new ProblemSolvedMetadata(summary.id(), summary.difficulty(), List.of()))
+                    .toList();
         }
 
         @Override

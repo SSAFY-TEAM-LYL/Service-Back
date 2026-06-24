@@ -12,6 +12,7 @@ import com.lyl.domain.problem.ProblemDetail;
 import com.lyl.domain.problem.ProblemJudgingData;
 import com.lyl.domain.problem.ProblemPublication;
 import com.lyl.domain.problem.ProblemPublicationRepository;
+import com.lyl.domain.problem.ProblemSolvedMetadata;
 import com.lyl.domain.problem.ProblemSummary;
 import com.lyl.domain.problem.exception.ProblemAccessDeniedException;
 import com.lyl.domain.problem.exception.ProblemPublicationNotFoundException;
@@ -211,6 +212,7 @@ class ProblemPublicationServiceTest {
                 List<String> problemIds,
                 String difficultyTier,
                 String algorithm,
+                String query,
                 int offset,
                 int size
         ) {
@@ -228,6 +230,13 @@ class ProblemPublicationServiceTest {
         @Override
         public Optional<String> findDifficultyById(String problemId) {
             return Optional.empty();
+        }
+
+        @Override
+        public List<ProblemSolvedMetadata> findSolvedMetadataByIds(List<String> problemIds) {
+            return findSummariesByIds(problemIds).stream()
+                    .map(summary -> new ProblemSolvedMetadata(summary.id(), summary.difficulty(), List.of()))
+                    .toList();
         }
 
         @Override

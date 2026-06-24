@@ -5,8 +5,12 @@ import com.lyl.domain.member.MemberRepository;
 import com.lyl.domain.member.OAuthAccountRepository;
 import com.lyl.domain.member.exception.MemberNotFoundException;
 import com.lyl.presentation.auth.dto.UserResponse;
+import com.lyl.presentation.member.dto.MemberRankingResponse;
+import com.lyl.presentation.member.dto.MemberRankingSummaryResponse;
 import com.lyl.presentation.member.dto.MemberUpdateRequest;
 import com.lyl.presentation.member.dto.MemberWithdrawalRequest;
+import java.util.List;
+import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class MemberService {
 
+    private static final int RANKING_TOP_LIMIT = 10;
+
     private final MemberRepository memberRepository;
     private final OAuthAccountRepository oauthAccountRepository;
     private final PasswordEncoder passwordEncoder;
@@ -25,6 +31,18 @@ public class MemberService {
     public UserResponse getMe(Long memberId) {
         Member member = findActiveMember(memberId);
         return UserResponse.from(member);
+    }
+
+    @Transactional(readOnly = true)
+    public MemberRankingSummaryResponse findRankings(Long currentMemberId) {
+        List<Member> topMembers = memberRepository.findRankingPage(0, RANKING_TOP_LIMIT);
+        List<MemberRankingResponse> items = IntStream.range(0, topMembers.size())
+                .mapToObj(index -> MemberRankingResponse.from(
+                        topMembers.get(index),
+                        index + 1
+                ))
+                .toList();
+        return new MemberRankingSummaryResponse(items, findCurrentMemberRanking(currentMemberId));
     }
 
     @Transactional
@@ -61,6 +79,19 @@ public class MemberService {
     private Member findActiveMember(Long memberId) {
         return memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
+    }
+
+    private MemberRankingResponse findCurrentMemberRanking(Long currentMemberId) {
+        if (currentMemberId == null) {
+            return null;
+        }
+
+        return memberRepository.findById(currentMemberId)
+                .map(member -> MemberRankingResponse.from(
+                        member,
+                        Math.toIntExact(memberRepository.countActiveMembersAheadOf(member.getXp(), member.getId()) + 1)
+                ))
+                .orElse(null);
     }
 
     private String normalizeNickname(String nickname, String currentNickname) {

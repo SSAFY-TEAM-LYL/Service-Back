@@ -43,11 +43,10 @@ public class SubmissionController {
 
     @GetMapping("/api/submissions/{submissionId}")
     public ResponseEntity<ApiResponse<SubmissionResponse>> findSubmission(
-            @PathVariable Long submissionId,
-            @AuthenticationPrincipal UserPrincipal userPrincipal
+            @PathVariable Long submissionId
     ) {
         return ResponseEntity.ok(ApiResponse.success(
-                submissionService.findSubmission(submissionId, userPrincipal.getId())
+                submissionService.findSubmission(submissionId)
         ));
     }
 
@@ -76,10 +75,12 @@ public class SubmissionController {
             @PathVariable String problemId,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false, defaultValue = "20") Integer size,
+            @RequestParam(required = false, defaultValue = "false") boolean mine,
             @AuthenticationPrincipal UserPrincipal userPrincipal
     ) {
+        Long memberId = mine ? userPrincipal.getId() : null;
         return ResponseEntity.ok(ApiResponse.success(
-                submissionService.findProblemSubmissions(problemId, userPrincipal.getId(), cursor, size)
+                submissionService.findProblemSubmissions(problemId, memberId, cursor, size)
         ));
     }
 
@@ -87,11 +88,10 @@ public class SubmissionController {
     public ResponseEntity<ApiResponse<CursorPageResponse<SubmissionReviewResponse>>> findSubmissionReviews(
             @PathVariable Long submissionId,
             @RequestParam(required = false) String cursor,
-            @RequestParam(required = false, defaultValue = "20") Integer size,
-            @AuthenticationPrincipal UserPrincipal userPrincipal
+            @RequestParam(required = false, defaultValue = "20") Integer size
     ) {
         return ResponseEntity.ok(ApiResponse.success(
-                submissionService.findSubmissionReviews(submissionId, userPrincipal.getId(), cursor, size)
+                submissionService.findSubmissionReviews(submissionId, cursor, size)
         ));
     }
 

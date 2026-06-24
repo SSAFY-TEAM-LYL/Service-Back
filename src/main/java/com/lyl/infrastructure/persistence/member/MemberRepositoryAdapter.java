@@ -2,8 +2,10 @@ package com.lyl.infrastructure.persistence.member;
 
 import com.lyl.domain.member.Member;
 import com.lyl.domain.member.MemberRepository;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -30,6 +32,21 @@ public class MemberRepositoryAdapter implements MemberRepository {
     @Override
     public Optional<Member> findById(Long id) {
         return repository.findByIdAndDeletedAtIsNull(id);
+    }
+
+    @Override
+    public List<Member> findRankingPage(int page, int size) {
+        return repository.findByDeletedAtIsNullOrderByXpDescIdAsc(PageRequest.of(page, size));
+    }
+
+    @Override
+    public long countActiveMembersAheadOf(int xp, Long memberId) {
+        return repository.countActiveMembersAheadOf(xp, memberId);
+    }
+
+    @Override
+    public long countActiveMembers() {
+        return repository.countByDeletedAtIsNull();
     }
 
     @Override

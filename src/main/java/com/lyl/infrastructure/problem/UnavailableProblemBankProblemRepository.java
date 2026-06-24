@@ -4,6 +4,7 @@ import com.lyl.domain.problem.ProblemBankProblemRepository;
 import com.lyl.domain.problem.ProblemAlgorithm;
 import com.lyl.domain.problem.ProblemDetail;
 import com.lyl.domain.problem.ProblemJudgingData;
+import com.lyl.domain.problem.ProblemSolvedMetadata;
 import com.lyl.domain.problem.ProblemSummary;
 import com.lyl.domain.problem.exception.ProblemBankUnavailableException;
 import java.util.List;
@@ -28,6 +29,7 @@ public class UnavailableProblemBankProblemRepository implements ProblemBankProbl
             List<String> problemIds,
             String difficultyTier,
             String algorithm,
+            String query,
             int offset,
             int size
     ) {
@@ -41,6 +43,11 @@ public class UnavailableProblemBankProblemRepository implements ProblemBankProbl
 
     @Override
     public Optional<String> findDifficultyById(String problemId) {
+        throw new ProblemBankUnavailableException();
+    }
+
+    @Override
+    public List<ProblemSolvedMetadata> findSolvedMetadataByIds(List<String> problemIds) {
         throw new ProblemBankUnavailableException();
     }
 
