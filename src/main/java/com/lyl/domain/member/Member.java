@@ -19,6 +19,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Member extends BaseEntity {
 
+    private static final int XP_PER_LEVEL = 50;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -42,9 +44,6 @@ public class Member extends BaseEntity {
     @Column(nullable = false)
     private int xp;
 
-    @Column(nullable = false)
-    private int level;
-
     public Member(String email, String nickname, String password) {
         this(email, nickname, password, Role.USER);
     }
@@ -64,7 +63,6 @@ public class Member extends BaseEntity {
         this.profileImageUrl = profileImageUrl;
         this.role = role;
         this.xp = 0;
-        this.level = 1;
     }
 
     public void updateProfile(String nickname, String profileImageUrl) {
@@ -81,6 +79,9 @@ public class Member extends BaseEntity {
             return;
         }
         this.xp += xp;
-        this.level = (this.xp / 50) + 1;
+    }
+
+    public int getLevel() {
+        return (xp / XP_PER_LEVEL) + 1;
     }
 }

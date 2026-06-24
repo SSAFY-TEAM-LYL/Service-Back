@@ -5,8 +5,12 @@ import com.lyl.domain.member.MemberRepository;
 import com.lyl.domain.member.OAuthAccountRepository;
 import com.lyl.domain.member.exception.MemberNotFoundException;
 import com.lyl.presentation.auth.dto.UserResponse;
+import com.lyl.presentation.common.PageResponse;
+import com.lyl.presentation.member.dto.MemberRankingResponse;
 import com.lyl.presentation.member.dto.MemberUpdateRequest;
 import com.lyl.presentation.member.dto.MemberWithdrawalRequest;
+import java.util.List;
+import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,6 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class MemberService {
 
+    private static final int DEFAULT_RANKING_PAGE_SIZE = 50;
+    private static final int MAX_RANKING_PAGE_SIZE = 100;
+
     private final MemberRepository memberRepository;
     private final OAuthAccountRepository oauthAccountRepository;
     private final PasswordEncoder passwordEncoder;
@@ -25,6 +32,21 @@ public class MemberService {
     public UserResponse getMe(Long memberId) {
         Member member = findActiveMember(memberId);
         return UserResponse.from(member);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<MemberRankingResponse> findRankings(Integer page, Integer size) {
+        int pageNumber = normalizePage(page);
+        int pageSize = normalizeRankingSize(size);
+        List<Member> pageMembers = memberRepository.findRankingPage(pageNumber, pageSize);
+        boolean hasNext = (long) (pageNumber + 1) * pageSize < memberRepository.countActiveMembers();
+        List<MemberRankingResponse> items = IntStream.range(0, pageMembers.size())
+                .mapToObj(index -> MemberRankingResponse.from(
+                        pageMembers.get(index),
+                        pageNumber * pageSize + index + 1
+                ))
+                .toList();
+        return new PageResponse<>(items, pageNumber, pageSize, hasNext);
     }
 
     @Transactional
@@ -61,6 +83,20 @@ public class MemberService {
     private Member findActiveMember(Long memberId) {
         return memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
+    }
+
+    private int normalizePage(Integer page) {
+        if (page == null) {
+            return 0;
+        }
+        return Math.max(page, 0);
+    }
+
+    private int normalizeRankingSize(Integer size) {
+        if (size == null) {
+            return DEFAULT_RANKING_PAGE_SIZE;
+        }
+        return Math.min(Math.max(size, 1), MAX_RANKING_PAGE_SIZE);
     }
 
     private String normalizeNickname(String nickname, String currentNickname) {

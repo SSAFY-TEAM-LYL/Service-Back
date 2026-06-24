@@ -87,6 +87,48 @@ class AuthServiceTest {
     }
 
     @Test
+    void memberLevelIsCalculatedFromXp() {
+        Member member = new Member(
+                "level-calc@example.com",
+                "levelUser",
+                passwordEncoder.encode("password123")
+        );
+        member.addXp(120);
+        memberRepository.save(member);
+
+        UserResponse response = memberService.getMe(member.getId());
+
+        assertThat(response.xp()).isEqualTo(120);
+        assertThat(response.level()).isEqualTo(3);
+    }
+
+    @Test
+    void findRankingsOrdersActiveMembersByXpDescending() {
+        Member first = new Member("rank-first@example.com", "first", passwordEncoder.encode("password123"));
+        first.addXp(150);
+        Member second = new Member("rank-second@example.com", "second", passwordEncoder.encode("password123"));
+        second.addXp(80);
+        Member deleted = new Member("rank-deleted@example.com", "deleted", passwordEncoder.encode("password123"));
+        deleted.addXp(300);
+        deleted.delete();
+        memberRepository.save(second);
+        memberRepository.save(first);
+        memberRepository.save(deleted);
+
+        var response = memberService.findRankings(0, 10);
+
+        assertThat(response.items())
+                .extracting(item -> item.rank(), item -> item.nickname(), item -> item.xp(), item -> item.level())
+                .containsSubsequence(
+                        org.assertj.core.groups.Tuple.tuple(1, "first", 150, 4),
+                        org.assertj.core.groups.Tuple.tuple(2, "second", 80, 2)
+                );
+        assertThat(response.items())
+                .extracting(item -> item.nickname())
+                .doesNotContain("deleted");
+    }
+
+    @Test
     void loginThrowsBadCredentialsWhenPasswordIsInvalid() {
         memberRepository.save(new Member(
                 "login-fail@example.com",
