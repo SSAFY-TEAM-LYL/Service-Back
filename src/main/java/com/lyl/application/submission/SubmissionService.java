@@ -83,8 +83,8 @@ public class SubmissionService {
     }
 
     @Transactional(readOnly = true)
-    public SubmissionResponse findSubmission(Long submissionId, Long memberId) {
-        Submission submission = submissionRepository.findByIdAndMemberId(submissionId, memberId)
+    public SubmissionResponse findSubmission(Long submissionId) {
+        Submission submission = submissionRepository.findById(submissionId)
                 .orElseThrow(SubmissionNotFoundException::new);
         return SubmissionResponse.from(submission);
     }
@@ -150,11 +150,10 @@ public class SubmissionService {
     @Transactional(readOnly = true)
     public CursorPageResponse<SubmissionReviewResponse> findSubmissionReviews(
             Long submissionId,
-            Long memberId,
             String cursor,
             Integer size
     ) {
-        submissionRepository.findByIdAndMemberId(submissionId, memberId)
+        submissionRepository.findById(submissionId)
                 .orElseThrow(SubmissionNotFoundException::new);
         int pageSize = normalizeSize(size);
         Cursor decodedCursor = cursorCodec.decode(cursor);
@@ -184,7 +183,7 @@ public class SubmissionService {
             SubmissionReviewCreateRequest request,
             Long memberId
     ) {
-        Submission submission = submissionRepository.findByIdAndMemberId(submissionId, memberId)
+        Submission submission = submissionRepository.findById(submissionId)
                 .orElseThrow(SubmissionNotFoundException::new);
         Member author = memberRepository.findById(memberId)
                 .orElseThrow(MemberNotFoundException::new);
@@ -281,7 +280,7 @@ public class SubmissionService {
     }
 
     private void validateReviewAccess(SubmissionReview review, Long memberId) {
-        if (!review.isWrittenBy(memberId) || !review.getSubmission().isWrittenBy(memberId) || review.getSubmission().isDeleted()) {
+        if (!review.isWrittenBy(memberId) || review.getSubmission().isDeleted()) {
             throw new SubmissionAccessDeniedException();
         }
     }

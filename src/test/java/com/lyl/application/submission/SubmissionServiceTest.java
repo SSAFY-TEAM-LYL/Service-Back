@@ -105,7 +105,7 @@ class SubmissionServiceTest {
 
         submissionService.refreshInProgressSubmissions(20);
 
-        SubmissionResponse response = submissionService.findSubmission(created.id(), member.getId());
+        SubmissionResponse response = submissionService.findSubmission(created.id());
         Member rewardedMember = memberRepository.findById(member.getId()).orElseThrow();
         assertThat(response.status()).isEqualTo(SubmissionStatus.ACCEPTED);
         assertThat(response.passedTestCount()).isEqualTo(2);
@@ -154,7 +154,7 @@ class SubmissionServiceTest {
 
         submissionService.refreshInProgressSubmissions(20);
 
-        SubmissionResponse response = submissionService.findSubmission(created.id(), member.getId());
+        SubmissionResponse response = submissionService.findSubmission(created.id());
         assertThat(response.status()).isEqualTo(SubmissionStatus.WRONG_ANSWER);
         assertThat(response.passedTestCount()).isZero();
         assertThat(response.firstFailedCaseSeq()).isZero();
@@ -227,7 +227,7 @@ class SubmissionServiceTest {
 
         submissionService.deleteSubmission(created.id(), member.getId());
 
-        assertThatThrownBy(() -> submissionService.findSubmission(created.id(), member.getId()))
+        assertThatThrownBy(() -> submissionService.findSubmission(created.id()))
                 .isInstanceOf(SubmissionNotFoundException.class);
     }
 
@@ -248,7 +248,6 @@ class SubmissionServiceTest {
         );
         CursorPageResponse<SubmissionReviewResponse> listed = submissionService.findSubmissionReviews(
                 submission.id(),
-                member.getId(),
                 null,
                 20
         );
@@ -260,7 +259,6 @@ class SubmissionServiceTest {
         submissionService.deleteSubmissionReview(created.id(), member.getId());
         CursorPageResponse<SubmissionReviewResponse> afterDelete = submissionService.findSubmissionReviews(
                 submission.id(),
-                member.getId(),
                 null,
                 20
         );
@@ -268,6 +266,74 @@ class SubmissionServiceTest {
         assertThat(listed.items()).hasSize(1);
         assertThat(updated.content()).isEqualTo("수정된 리뷰");
         assertThat(afterDelete.items()).isEmpty();
+    }
+
+    @Test
+    void problemSubmissionListIncludesOtherMembersSubmissionsAndAllowsReview() {
+        Member submitter = saveMember("submitter10@example.com", "submitter10");
+        Member reviewer = saveMember("reviewer10@example.com", "reviewer10");
+        String problemId = "10101010-2222-4333-8444-555555555555";
+        publishProblemWithTwoTestCases(problemId);
+        SubmissionResponse submission = submissionService.createSubmission(
+                problemId,
+                new SubmissionCreateRequest("PYTHON3", "print(1)"),
+                submitter.getId()
+        );
+
+        CursorPageResponse<SubmissionResponse> listed = submissionService.findProblemSubmissions(
+                problemId,
+                null,
+                null,
+                20
+        );
+        SubmissionResponse found = submissionService.findSubmission(submission.id());
+        SubmissionReviewResponse review = submissionService.createSubmissionReview(
+                submission.id(),
+                new SubmissionReviewCreateRequest("다른 사람 풀이 리뷰"),
+                reviewer.getId()
+        );
+        SubmissionReviewResponse updatedReview = submissionService.updateSubmissionReview(
+                review.id(),
+                new SubmissionReviewUpdateRequest("수정한 리뷰"),
+                reviewer.getId()
+        );
+
+        assertThat(listed.items())
+                .extracting(SubmissionResponse::id)
+                .contains(submission.id());
+        assertThat(found.authorId()).isEqualTo(submitter.getId());
+        assertThat(review.authorId()).isEqualTo(reviewer.getId());
+        assertThat(updatedReview.content()).isEqualTo("수정한 리뷰");
+    }
+
+    @Test
+    void problemSubmissionListCanBeFilteredByCurrentMember() {
+        Member submitter = saveMember("submitter11@example.com", "submitter11");
+        Member other = saveMember("other11@example.com", "other11");
+        String problemId = "11111111-3333-4333-8444-555555555555";
+        publishProblemWithTwoTestCases(problemId);
+        SubmissionResponse mine = submissionService.createSubmission(
+                problemId,
+                new SubmissionCreateRequest("PYTHON3", "print(1)"),
+                submitter.getId()
+        );
+        SubmissionResponse others = submissionService.createSubmission(
+                problemId,
+                new SubmissionCreateRequest("JAVA", "public class Main {}"),
+                other.getId()
+        );
+
+        CursorPageResponse<SubmissionResponse> listed = submissionService.findProblemSubmissions(
+                problemId,
+                submitter.getId(),
+                null,
+                20
+        );
+
+        assertThat(listed.items())
+                .extracting(SubmissionResponse::id)
+                .contains(mine.id())
+                .doesNotContain(others.id());
     }
 
     private Member saveMember(String email, String nickname) {

@@ -10,6 +10,8 @@ import java.util.List;
 public record SubmissionResponse(
         Long id,
         String problemId,
+        Long authorId,
+        String author,
         SubmissionLanguage language,
         String sourceCode,
         SubmissionStatus status,
@@ -28,6 +30,8 @@ public record SubmissionResponse(
         return new SubmissionResponse(
                 submission.getId(),
                 submission.getProblemId(),
+                submission.getMember().getId(),
+                submission.getMember().getNickname(),
                 submission.getLanguage(),
                 submission.getSourceCode(),
                 submission.getStatus(),

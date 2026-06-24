@@ -25,7 +25,7 @@ interface SpringDataSubmissionRepository extends JpaRepository<Submission, Long>
             from Submission s
             where s.deletedAt is null
               and s.problemId = :problemId
-              and s.member.id = :memberId
+              and (:memberId is null or s.member.id = :memberId)
               and (
                   :cursorCreatedAt is null
                   or s.createdAt < :cursorCreatedAt
