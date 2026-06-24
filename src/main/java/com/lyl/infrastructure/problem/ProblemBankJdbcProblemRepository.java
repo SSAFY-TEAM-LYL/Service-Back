@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lyl.domain.problem.ProblemAlgorithm;
+import com.lyl.domain.problem.ProblemAlgorithmType;
 import com.lyl.domain.problem.ProblemBankProblemRepository;
 import com.lyl.domain.problem.ProblemConstraint;
 import com.lyl.domain.problem.ProblemDetail;
@@ -284,28 +285,9 @@ public class ProblemBankJdbcProblemRepository implements ProblemBankProblemRepos
     }
 
     private ProblemAlgorithm toAlgorithm(String code) {
-        return new ProblemAlgorithm(code, switch (code) {
-            case "dijkstra" -> "Dijkstra";
-            case "bfs" -> "BFS";
-            case "topological_sort" -> "Topological Sort";
-            case "bellman_ford" -> "Bellman-Ford";
-            case "floyd_warshall" -> "Floyd-Warshall";
-            case "kruskal_mst" -> "Kruskal MST";
-            case "max_flow" -> "Max Flow";
-            case "binary_search" -> "Binary Search";
-            case "lis" -> "LIS";
-            case "two_sum" -> "Two Sum";
-            case "sort_cluster" -> "Sort cluster";
-            case "string_match_cluster" -> "String Match cluster";
-            case "segtree" -> "Segment Tree";
-            case "heap" -> "Heap (Min-PQ)";
-            case "fenwick" -> "Fenwick Tree (BIT)";
-            case "union_find" -> "Union-Find";
-            case "knapsack_01" -> "Knapsack 0/1";
-            case "coin_change" -> "Coin Change";
-            case "sieve" -> "Sieve of Eratosthenes";
-            default -> code;
-        });
+        return ProblemAlgorithmType.fromCode(code)
+                .map(ProblemAlgorithmType::toProblemAlgorithm)
+                .orElse(new ProblemAlgorithm(code, code));
     }
 
     private List<ProblemConstraint> parseConstraints(String json) {

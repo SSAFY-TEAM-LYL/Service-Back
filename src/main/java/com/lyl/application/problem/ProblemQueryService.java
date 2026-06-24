@@ -1,7 +1,8 @@
 package com.lyl.application.problem;
 
-import com.lyl.domain.problem.ProblemBankProblemRepository;
 import com.lyl.domain.problem.ProblemAlgorithmCatalog;
+import com.lyl.domain.problem.ProblemAlgorithmType;
+import com.lyl.domain.problem.ProblemBankProblemRepository;
 import com.lyl.domain.problem.ProblemDetail;
 import com.lyl.domain.problem.ProblemPublicationRepository;
 import com.lyl.domain.problem.ProblemSummary;
@@ -105,7 +106,9 @@ public class ProblemQueryService {
         if (algorithm == null || algorithm.isBlank()) {
             return null;
         }
-        return algorithm.trim();
+        return ProblemAlgorithmType.fromCode(algorithm)
+                .map(ProblemAlgorithmType::code)
+                .orElse(algorithm.trim());
     }
 
     private String normalizeQuery(String query) {

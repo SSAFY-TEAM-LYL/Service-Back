@@ -20,6 +20,7 @@ import com.lyl.domain.submission.Submission;
 import com.lyl.domain.submission.SubmissionLanguage;
 import com.lyl.domain.submission.SubmissionRepository;
 import com.lyl.presentation.common.CursorPageResponse;
+import com.lyl.presentation.problem.dto.ProblemAlgorithmResponse;
 import com.lyl.presentation.problem.dto.ProblemDetailResponse;
 import com.lyl.presentation.problem.dto.ProblemServiceSummaryResponse;
 import com.lyl.presentation.problem.dto.ProblemSummaryResponse;
@@ -140,6 +141,35 @@ class ProblemQueryServiceTest {
 
         assertThat(response.publishedProblemCount()).isGreaterThanOrEqualTo(1);
         assertThat(response.todaySubmissionCount()).isGreaterThanOrEqualTo(1);
+    }
+
+    @Test
+    void findAlgorithmsReturnsSupportedAlgorithmTypesFromEnum() {
+        List<ProblemAlgorithmResponse> response = problemQueryService.findAlgorithms();
+
+        assertThat(response)
+                .extracting(ProblemAlgorithmResponse::code)
+                .containsExactly(
+                        "dijkstra",
+                        "lis",
+                        "segtree",
+                        "two_sum",
+                        "bfs",
+                        "binary_search",
+                        "union_find",
+                        "toposort",
+                        "knapsack",
+                        "sort",
+                        "string_match",
+                        "max_flow",
+                        "sieve",
+                        "bellman_ford",
+                        "floyd_warshall",
+                        "kruskal_mst",
+                        "heap",
+                        "fenwick",
+                        "coin_change"
+                );
     }
 
     @Test
