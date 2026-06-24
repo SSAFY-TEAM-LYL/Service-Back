@@ -13,6 +13,7 @@ import com.lyl.domain.problem.ProblemJudgingData;
 import com.lyl.domain.problem.ProblemPublication;
 import com.lyl.domain.problem.ProblemPublicationRepository;
 import com.lyl.domain.problem.ProblemSample;
+import com.lyl.domain.problem.ProblemSolvedMetadata;
 import com.lyl.domain.problem.ProblemSummary;
 import com.lyl.domain.problem.exception.ProblemNotFoundException;
 import com.lyl.domain.submission.Submission;
@@ -251,6 +252,13 @@ class ProblemQueryServiceTest {
         public Optional<String> findDifficultyById(String problemId) {
             return Optional.ofNullable(details.get(problemId))
                     .map(ProblemDetail::difficulty);
+        }
+
+        @Override
+        public List<ProblemSolvedMetadata> findSolvedMetadataByIds(List<String> problemIds) {
+            return findSummariesByIds(problemIds).stream()
+                    .map(summary -> new ProblemSolvedMetadata(summary.id(), summary.difficulty(), List.of()))
+                    .toList();
         }
 
         @Override

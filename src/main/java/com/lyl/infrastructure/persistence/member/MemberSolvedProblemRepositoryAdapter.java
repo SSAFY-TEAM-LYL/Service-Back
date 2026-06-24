@@ -2,6 +2,7 @@ package com.lyl.infrastructure.persistence.member;
 
 import com.lyl.domain.member.MemberSolvedProblem;
 import com.lyl.domain.member.MemberSolvedProblemRepository;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
@@ -14,6 +15,11 @@ public class MemberSolvedProblemRepositoryAdapter implements MemberSolvedProblem
     @Override
     public boolean existsByMemberIdAndProblemId(Long memberId, String problemId) {
         return repository.existsByMemberIdAndProblemIdAndDeletedAtIsNull(memberId, problemId);
+    }
+
+    @Override
+    public List<String> findProblemIdsByMemberId(Long memberId) {
+        return repository.findProblemIdsByMemberId(memberId);
     }
 
     @Override

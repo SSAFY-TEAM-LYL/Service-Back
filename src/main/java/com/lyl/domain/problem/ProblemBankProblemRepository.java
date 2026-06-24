@@ -22,6 +22,8 @@ public interface ProblemBankProblemRepository {
 
     Optional<String> findDifficultyById(String problemId);
 
+    List<ProblemSolvedMetadata> findSolvedMetadataByIds(List<String> problemIds);
+
     List<ProblemAlgorithm> findAlgorithms();
 
     Optional<ProblemJudgingData> findJudgingDataById(String problemId);

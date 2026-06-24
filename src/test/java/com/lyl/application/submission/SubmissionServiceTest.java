@@ -11,6 +11,7 @@ import com.lyl.domain.problem.ProblemDetail;
 import com.lyl.domain.problem.ProblemJudgingData;
 import com.lyl.domain.problem.ProblemPublication;
 import com.lyl.domain.problem.ProblemPublicationRepository;
+import com.lyl.domain.problem.ProblemSolvedMetadata;
 import com.lyl.domain.problem.ProblemSummary;
 import com.lyl.domain.problem.ProblemTestCase;
 import com.lyl.domain.problem.exception.ProblemNotFoundException;
@@ -404,6 +405,14 @@ class SubmissionServiceTest {
         @Override
         public Optional<String> findDifficultyById(String problemId) {
             return Optional.ofNullable(difficulties.get(problemId));
+        }
+
+        @Override
+        public List<ProblemSolvedMetadata> findSolvedMetadataByIds(List<String> problemIds) {
+            return problemIds.stream()
+                    .filter(difficulties::containsKey)
+                    .map(problemId -> new ProblemSolvedMetadata(problemId, difficulties.get(problemId), List.of()))
+                    .toList();
         }
 
         @Override
