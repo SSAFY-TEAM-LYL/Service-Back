@@ -5,6 +5,10 @@ import java.util.Optional;
 
 public enum ProblemAlgorithmType {
 
+    ARITHMETIC("arithmetic", "Arithmetic"),
+    BASIC_IO("basic_io", "Basic I/O"),
+    CONDITIONAL("conditional", "Conditional"),
+    LOOP_ACCUMULATE("loop_accumulate", "Loop & Accumulate"),
     DIJKSTRA("dijkstra", "Dijkstra"),
     LIS("lis", "LIS"),
     SEGTREE("segtree", "Segment Tree"),

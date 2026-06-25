@@ -150,6 +150,10 @@ class ProblemQueryServiceTest {
         assertThat(response)
                 .extracting(ProblemAlgorithmResponse::code)
                 .containsExactly(
+                        "arithmetic",
+                        "basic_io",
+                        "conditional",
+                        "loop_accumulate",
                         "dijkstra",
                         "lis",
                         "segtree",

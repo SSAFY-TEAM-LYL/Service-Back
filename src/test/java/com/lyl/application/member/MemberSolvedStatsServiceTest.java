@@ -102,7 +102,7 @@ class MemberSolvedStatsServiceTest {
                     assertThat(algorithm.solvedCount()).isEqualTo(2);
                     assertThat(algorithm.percent()).isEqualTo(66.7);
                 });
-        assertThat(response.algorithms()).hasSize(19);
+        assertThat(response.algorithms()).hasSize(23);
     }
 
     @Test
@@ -118,7 +118,7 @@ class MemberSolvedStatsServiceTest {
             assertThat(difficulty.percent()).isZero();
             assertThat(difficulty.levels()).hasSize(5);
         });
-        assertThat(response.algorithms()).hasSize(19);
+        assertThat(response.algorithms()).hasSize(23);
         assertThat(response.algorithms()).allSatisfy(algorithm -> {
             assertThat(algorithm.solvedCount()).isZero();
             assertThat(algorithm.percent()).isZero();
