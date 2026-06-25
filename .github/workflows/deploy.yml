@@ -1,0 +1,113 @@
+name: Backend Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set image name
+        id: image
+        run: |
+          image_name="$(echo "ghcr.io/${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          echo "image_name=${image_name}" >> "${GITHUB_OUTPUT}"
+          echo "image_uri=${image_name}:${GITHUB_SHA}" >> "${GITHUB_OUTPUT}"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Test
+        run: ./gradlew test --no-daemon
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push image
+        run: |
+          docker build \
+            --tag "${{ steps.image.outputs.image_uri }}" \
+            --tag "${{ steps.image.outputs.image_name }}:latest" \
+            .
+          docker push "${{ steps.image.outputs.image_uri }}"
+          docker push "${{ steps.image.outputs.image_name }}:latest"
+
+      - name: Configure SSH
+        env:
+          BACKEND_HOST: ${{ vars.BACKEND_HOST }}
+          BACKEND_SSH_PRIVATE_KEY: ${{ secrets.BACKEND_SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${BACKEND_SSH_PRIVATE_KEY}" > ~/.ssh/lyl-backend.pem
+          chmod 600 ~/.ssh/lyl-backend.pem
+          ssh-keyscan -H "${BACKEND_HOST}" >> ~/.ssh/known_hosts
+
+      - name: Upload compose file
+        env:
+          BACKEND_HOST: ${{ vars.BACKEND_HOST }}
+          BACKEND_SSH_USER: ${{ vars.BACKEND_SSH_USER || 'ubuntu' }}
+        run: |
+          ssh -i ~/.ssh/lyl-backend.pem "${BACKEND_SSH_USER}@${BACKEND_HOST}" "mkdir -p /opt/lyl-backend"
+          scp -i ~/.ssh/lyl-backend.pem deploy/docker-compose.prod.yml "${BACKEND_SSH_USER}@${BACKEND_HOST}:/opt/lyl-backend/docker-compose.yml"
+
+      - name: Deploy on EC2
+        env:
+          BACKEND_HOST: ${{ vars.BACKEND_HOST }}
+          BACKEND_SSH_USER: ${{ vars.BACKEND_SSH_USER || 'ubuntu' }}
+        run: |
+          ssh -i ~/.ssh/lyl-backend.pem "${BACKEND_SSH_USER}@${BACKEND_HOST}" 'bash -s' <<'REMOTE_SCRIPT'
+          set -euo pipefail
+
+          cd /opt/lyl-backend
+
+          cat > .env <<'ENV_FILE'
+          BACKEND_IMAGE=${{ steps.image.outputs.image_uri }}
+          MYSQL_DATABASE=${{ vars.MYSQL_DATABASE || 'lyl' }}
+          MYSQL_USER=${{ vars.MYSQL_USER || 'lyl' }}
+          MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          APP_CORS_ALLOWED_ORIGINS=${{ vars.APP_CORS_ALLOWED_ORIGINS || 'https://lyl.kro.kr' }}
+          GOOGLE_OAUTH_CLIENT_ID=${{ vars.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET=${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          KAKAO_REST_API_KEY=${{ vars.KAKAO_REST_API_KEY }}
+          KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}
+          OAUTH2_SUCCESS_REDIRECT_URI=${{ vars.OAUTH2_SUCCESS_REDIRECT_URI || 'https://lyl.kro.kr/oauth/callback' }}
+          OAUTH2_FAILURE_REDIRECT_URI=${{ vars.OAUTH2_FAILURE_REDIRECT_URI || 'https://lyl.kro.kr/login' }}
+          PROBLEM_BANK_ENABLED=${{ vars.PROBLEM_BANK_ENABLED || 'true' }}
+          PROBLEM_BANK_DB_URL=${{ vars.PROBLEM_BANK_DB_URL }}
+          PROBLEM_BANK_DB_USERNAME=${{ vars.PROBLEM_BANK_DB_USERNAME }}
+          PROBLEM_BANK_DB_PASSWORD=${{ secrets.PROBLEM_BANK_DB_PASSWORD }}
+          JUDGE0_ENABLED=${{ vars.JUDGE0_ENABLED || 'true' }}
+          JUDGE0_BASE_URL=${{ vars.JUDGE0_BASE_URL }}
+          JUDGE0_AUTH_HEADER=${{ vars.JUDGE0_AUTH_HEADER || 'X-Auth-Token' }}
+          JUDGE0_AUTH_TOKEN=${{ secrets.JUDGE0_AUTH_TOKEN }}
+          JUDGE0_REQUEST_TIMEOUT_SECONDS=${{ vars.JUDGE0_REQUEST_TIMEOUT_SECONDS || '5' }}
+          JUDGE0_POLL_BATCH_SIZE=${{ vars.JUDGE0_POLL_BATCH_SIZE || '20' }}
+          JUDGE0_POLL_DELAY_MILLIS=${{ vars.JUDGE0_POLL_DELAY_MILLIS || '2000' }}
+          ENV_FILE
+
+          printf '%s' '${{ secrets.GHCR_TOKEN || github.token }}' | docker login ghcr.io -u '${{ vars.GHCR_USERNAME || github.actor }}' --password-stdin
+          docker compose pull backend
+          docker compose up -d
+          docker image prune -f
+          REMOTE_SCRIPT
