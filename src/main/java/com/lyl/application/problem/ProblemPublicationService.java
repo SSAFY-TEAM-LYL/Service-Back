@@ -11,6 +11,7 @@ import com.lyl.domain.problem.ProblemPublication;
 import com.lyl.domain.problem.ProblemPublicationRepository;
 import com.lyl.domain.problem.ProblemSummary;
 import com.lyl.domain.problem.exception.ProblemAccessDeniedException;
+import com.lyl.domain.problem.exception.ProblemNotFoundException;
 import com.lyl.domain.problem.exception.ProblemPublicationNotFoundException;
 import com.lyl.presentation.common.CursorPageResponse;
 import com.lyl.presentation.common.PageResponse;
@@ -95,6 +96,7 @@ public class ProblemPublicationService {
     @Transactional
     public ProblemPublicationResponse publish(ProblemPublicationCreateRequest request, Long adminId) {
         validateAdmin(adminId);
+        validateProblemExists(request.problemId());
         ProblemPublication publication = problemPublicationRepository.findByProblemId(request.problemId())
                 .map(existingPublication -> {
                     existingPublication.publish();
@@ -118,6 +120,12 @@ public class ProblemPublicationService {
                 .orElseThrow(MemberNotFoundException::new);
         if (member.getRole() != Role.ADMIN) {
             throw new ProblemAccessDeniedException();
+        }
+    }
+
+    private void validateProblemExists(String problemId) {
+        if (problemBankProblemRepository.findSummariesByIds(List.of(problemId)).isEmpty()) {
+            throw new ProblemNotFoundException();
         }
     }
 

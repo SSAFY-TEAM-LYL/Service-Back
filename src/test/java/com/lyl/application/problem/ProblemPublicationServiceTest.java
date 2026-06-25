@@ -15,6 +15,7 @@ import com.lyl.domain.problem.ProblemPublicationRepository;
 import com.lyl.domain.problem.ProblemSolvedMetadata;
 import com.lyl.domain.problem.ProblemSummary;
 import com.lyl.domain.problem.exception.ProblemAccessDeniedException;
+import com.lyl.domain.problem.exception.ProblemNotFoundException;
 import com.lyl.domain.problem.exception.ProblemPublicationNotFoundException;
 import com.lyl.presentation.common.CursorPageResponse;
 import com.lyl.presentation.common.PageResponse;
@@ -59,6 +60,7 @@ class ProblemPublicationServiceTest {
     void publishCreatesPublicationWhenAdminRequests() {
         Member admin = saveMember("problem-publish-admin@example.com", "problemAdmin", Role.ADMIN);
         String problemId = "11111111-1111-4111-8111-111111111111";
+        addProblemBankSummary(problemId, 1001L, "공개 등록할 문제");
 
         ProblemPublicationResponse response = problemPublicationService.publish(
                 new ProblemPublicationCreateRequest(problemId),
@@ -67,6 +69,16 @@ class ProblemPublicationServiceTest {
 
         assertThat(response.problemId()).isEqualTo(problemId);
         assertThat(response.published()).isTrue();
+    }
+
+    @Test
+    void publishThrowsProblemNotFoundWhenProblemDoesNotExistInProblemBank() {
+        Member admin = saveMember("problem-missing-admin@example.com", "problemMissingAdmin", Role.ADMIN);
+
+        assertThatThrownBy(() -> problemPublicationService.publish(
+                new ProblemPublicationCreateRequest("12121212-1212-4121-8121-121212121212"),
+                admin.getId()
+        )).isInstanceOf(ProblemNotFoundException.class);
     }
 
     @Test
@@ -84,6 +96,8 @@ class ProblemPublicationServiceTest {
         Member admin = saveMember("problem-list-admin@example.com", "problemListAdmin", Role.ADMIN);
         String publishedProblemId = "33333333-3333-4333-8333-333333333333";
         String unpublishedProblemId = "44444444-4444-4444-8444-444444444444";
+        addProblemBankSummary(publishedProblemId, 1003L, "공개 문제");
+        addProblemBankSummary(unpublishedProblemId, 1004L, "비공개 문제");
         problemPublicationService.publish(new ProblemPublicationCreateRequest(publishedProblemId), admin.getId());
         problemPublicationService.publish(new ProblemPublicationCreateRequest(unpublishedProblemId), admin.getId());
         problemPublicationService.unpublish(unpublishedProblemId, admin.getId());
@@ -136,6 +150,7 @@ class ProblemPublicationServiceTest {
     void unpublishSoftDeletesPublication() {
         Member admin = saveMember("problem-unpublish-admin@example.com", "problemUnpublishAdmin", Role.ADMIN);
         String problemId = "55555555-5555-4555-8555-555555555555";
+        addProblemBankSummary(problemId, 1005L, "공개 해제할 문제");
         ProblemPublicationResponse response = problemPublicationService.publish(
                 new ProblemPublicationCreateRequest(problemId),
                 admin.getId()
@@ -154,6 +169,7 @@ class ProblemPublicationServiceTest {
     void publishRestoresUnpublishedPublication() {
         Member admin = saveMember("problem-republish-admin@example.com", "problemRepublishAdmin", Role.ADMIN);
         String problemId = "66666666-6666-4666-8666-666666666666";
+        addProblemBankSummary(problemId, 1006L, "재공개할 문제");
         ProblemPublicationResponse firstResponse = problemPublicationService.publish(
                 new ProblemPublicationCreateRequest(problemId),
                 admin.getId()
@@ -171,6 +187,17 @@ class ProblemPublicationServiceTest {
 
     private Member saveMember(String email, String nickname, Role role) {
         return memberRepository.save(new Member(email, nickname, "encoded-password", role));
+    }
+
+    private void addProblemBankSummary(String problemId, long problemNumber, String title) {
+        problemBankProblemRepository.addSummary(new ProblemSummary(
+                problemId,
+                problemNumber,
+                title,
+                "Bronze V",
+                1000,
+                OffsetDateTime.parse("2026-06-15T00:00:00Z")
+        ));
     }
 
     @TestConfiguration

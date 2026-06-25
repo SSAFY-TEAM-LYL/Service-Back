@@ -1,6 +1,7 @@
 package com.lyl.infrastructure.problem;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -321,6 +322,7 @@ public class ProblemBankJdbcProblemRepository implements ProblemBankProblemRepos
         }
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private record ProblemConstraintJson(
             String name,
             @JsonProperty("min_value") Long minValue,
@@ -329,6 +331,7 @@ public class ProblemBankJdbcProblemRepository implements ProblemBankProblemRepos
     ) {
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private record ProblemSampleJson(
             @JsonProperty("input_text") String inputText,
             @JsonProperty("expected_output") String expectedOutput,
