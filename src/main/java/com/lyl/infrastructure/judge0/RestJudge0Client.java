@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,8 @@ import org.springframework.web.client.RestClientResponseException;
 @Slf4j
 @Component
 public class RestJudge0Client implements Judge0Client {
+
+    private static final int JUDGE0_MAX_BATCH_RESULT_SIZE = 20;
 
     private final Judge0Properties properties;
     private final ObjectMapper objectMapper;
@@ -78,6 +81,16 @@ public class RestJudge0Client implements Judge0Client {
         if (tokens.isEmpty()) {
             return List.of();
         }
+        List<Judge0SubmissionResult> results = new ArrayList<>();
+        int batchSize = batchResultSize();
+        for (int from = 0; from < tokens.size(); from += batchSize) {
+            int to = Math.min(from + batchSize, tokens.size());
+            results.addAll(fetchBatchResultChunk(tokens.subList(from, to)));
+        }
+        return results;
+    }
+
+    private List<Judge0SubmissionResult> fetchBatchResultChunk(List<String> tokens) {
         try {
             String joinedTokens = tokens.stream().collect(Collectors.joining(","));
             Judge0BatchResultResponse response = restClient.get()
@@ -103,6 +116,10 @@ public class RestJudge0Client implements Judge0Client {
                     baseUrl(), tokens.size(), e.getMessage(), e);
             throw new JudgeServerUnavailableException();
         }
+    }
+
+    private int batchResultSize() {
+        return Math.min(properties.pollBatchSize(), JUDGE0_MAX_BATCH_RESULT_SIZE);
     }
 
     private Map<String, Object> toSubmitPayload(Judge0SubmissionRequest request) {

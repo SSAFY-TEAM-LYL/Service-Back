@@ -17,6 +17,7 @@ import com.lyl.domain.problem.ProblemTestCase;
 import com.lyl.domain.problem.exception.ProblemNotFoundException;
 import com.lyl.domain.streak.DailyStreakRepository;
 import com.lyl.domain.submission.exception.SubmissionNotFoundException;
+import com.lyl.domain.submission.SubmissionRepository;
 import com.lyl.presentation.common.CursorPageResponse;
 import com.lyl.domain.submission.SubmissionStatus;
 import com.lyl.presentation.submission.dto.SubmissionCreateRequest;
@@ -32,6 +33,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +42,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @SpringBootTest
 class SubmissionServiceTest {
@@ -63,6 +66,9 @@ class SubmissionServiceTest {
 
     @Autowired
     private DailyStreakRepository dailyStreakRepository;
+
+    @Autowired
+    private SubmissionRepository submissionRepository;
 
     @BeforeEach
     void setUp() {
@@ -161,6 +167,30 @@ class SubmissionServiceTest {
         assertThat(response.firstFailedCaseSeq()).isZero();
         assertThat(response.errorMessage()).isEqualTo("WRONG_ANSWER");
         assertThat(response.judgedAt()).isNotNull();
+    }
+
+    @Test
+    void refreshInProgressSubmissionsMarksOldJudgingSubmissionAsInternalError() {
+        Member member = saveMember("submitter12@example.com", "submitter12");
+        publishProblemWithTwoTestCases("12121212-2222-4333-8444-555555555555");
+        SubmissionResponse created = submissionService.createSubmission(
+                "12121212-2222-4333-8444-555555555555",
+                new SubmissionCreateRequest("PYTHON3", "print(1)"),
+                member.getId()
+        );
+        com.lyl.domain.submission.Submission submission = submissionRepository.findById(created.id()).orElseThrow();
+        ReflectionTestUtils.setField(submission, "submittedAt", LocalDateTime.now().minusSeconds(180));
+        submissionRepository.save(submission);
+
+        submissionService.refreshInProgressSubmissions(20);
+
+        SubmissionResponse response = submissionService.findSubmission(created.id());
+        assertThat(response.status()).isEqualTo(SubmissionStatus.INTERNAL_ERROR);
+        assertThat(response.errorMessage()).isEqualTo("채점 서버 응답 시간이 초과되었습니다.");
+        assertThat(response.judgedAt()).isNotNull();
+        assertThat(response.testCaseResults())
+                .extracting(result -> result.status())
+                .containsOnly(SubmissionStatus.INTERNAL_ERROR);
     }
 
     @Test

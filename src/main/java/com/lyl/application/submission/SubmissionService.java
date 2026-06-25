@@ -21,6 +21,7 @@ import com.lyl.domain.submission.SubmissionTestCaseResult;
 import com.lyl.domain.submission.exception.SubmissionAccessDeniedException;
 import com.lyl.domain.submission.exception.SubmissionNotFoundException;
 import com.lyl.domain.submission.exception.SubmissionReviewNotFoundException;
+import com.lyl.infrastructure.judge0.Judge0Properties;
 import com.lyl.presentation.common.CursorPageResponse;
 import com.lyl.presentation.submission.dto.SubmissionCreateRequest;
 import com.lyl.presentation.submission.dto.SubmissionResponse;
@@ -45,6 +46,7 @@ public class SubmissionService {
     private static final int DEFAULT_PAGE_SIZE = 20;
     private static final int MAX_PAGE_SIZE = 50;
     private static final int DEFAULT_TIME_LIMIT_MS = 1000;
+    private static final String JUDGING_TIMEOUT_MESSAGE = "채점 서버 응답 시간이 초과되었습니다.";
 
     private final MemberRepository memberRepository;
     private final ProblemPublicationRepository problemPublicationRepository;
@@ -55,6 +57,7 @@ public class SubmissionService {
     private final CursorCodec cursorCodec;
     private final DailyStreakService dailyStreakService;
     private final SubmissionRewardService submissionRewardService;
+    private final Judge0Properties judge0Properties;
 
     @Transactional
     public SubmissionResponse createSubmission(String problemId, SubmissionCreateRequest request, Long memberId) {
@@ -221,6 +224,10 @@ public class SubmissionService {
     }
 
     private void refreshSubmission(Submission submission) {
+        if (isJudgingTimedOut(submission)) {
+            submission.markJudgingTimedOut(JUDGING_TIMEOUT_MESSAGE);
+            return;
+        }
         List<String> tokens = submission.getTestCaseResults().stream()
                 .map(SubmissionTestCaseResult::getJudge0Token)
                 .filter(token -> token != null && !token.isBlank())
@@ -255,6 +262,13 @@ public class SubmissionService {
                 );
             }
         }
+    }
+
+    private boolean isJudgingTimedOut(Submission submission) {
+        return submission.getSubmittedAt() != null
+                && !submission.getSubmittedAt()
+                        .plusSeconds(judge0Properties.judgingTimeoutSeconds())
+                        .isAfter(LocalDateTime.now());
     }
 
     private void submitToJudge(

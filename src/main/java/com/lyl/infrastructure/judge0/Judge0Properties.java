@@ -8,6 +8,7 @@ public record Judge0Properties(
         String authHeader,
         String authToken,
         int requestTimeoutSeconds,
+        int judgingTimeoutSeconds,
         int pollBatchSize,
         boolean enabled
 ) {
@@ -17,6 +18,9 @@ public record Judge0Properties(
         }
         if (requestTimeoutSeconds <= 0) {
             requestTimeoutSeconds = 5;
+        }
+        if (judgingTimeoutSeconds <= 0) {
+            judgingTimeoutSeconds = 120;
         }
         if (pollBatchSize <= 0) {
             pollBatchSize = 20;

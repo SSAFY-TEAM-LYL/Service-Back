@@ -106,6 +106,23 @@ public class Submission extends BaseEntity {
         this.judgedAt = LocalDateTime.now();
     }
 
+    public void markJudgingTimedOut(String message) {
+        testCaseResults.stream()
+                .filter(result -> !result.isCompleted())
+                .forEach(result -> result.updateResult(
+                        SubmissionStatus.INTERNAL_ERROR,
+                        null,
+                        null,
+                        null,
+                        null,
+                        message
+                ));
+        aggregateCompletedResults();
+        if (this.errorMessage == null || this.errorMessage.isBlank()) {
+            this.errorMessage = message;
+        }
+    }
+
     public void aggregateCompletedResults() {
         this.passedTestCount = (int) testCaseResults.stream()
                 .filter(SubmissionTestCaseResult::isAccepted)

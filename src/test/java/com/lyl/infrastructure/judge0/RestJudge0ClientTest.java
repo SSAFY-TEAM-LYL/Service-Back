@@ -8,7 +8,10 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -54,6 +57,7 @@ class RestJudge0ClientTest {
                 "X-Auth-Token",
                 "test-token",
                 5,
+                120,
                 20,
                 true
         ));
@@ -68,5 +72,75 @@ class RestJudge0ClientTest {
         assertThat(result.timeMs()).isEqualTo(10);
         assertThat(result.memoryKb()).isEqualTo(512);
         assertThat(result.message()).isEqualTo("Wrong Answer");
+    }
+
+    @Test
+    void fetchBatchResultsSplitsTokensByJudge0BatchLimit() throws IOException {
+        server = HttpServer.create(new InetSocketAddress(0), 0);
+        AtomicInteger callCount = new AtomicInteger();
+        List<Integer> requestedSizes = new ArrayList<>();
+        server.createContext("/submissions/batch", exchange -> {
+            callCount.incrementAndGet();
+            String tokens = extractTokens(exchange.getRequestURI().getRawQuery());
+            List<String> requestedTokens = tokens.isBlank() ? List.of() : List.of(tokens.split(","));
+            requestedSizes.add(requestedTokens.size());
+            if (requestedTokens.size() > 20) {
+                byte[] error = "{\"error\":\"too many\"}".getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(400, error.length);
+                exchange.getResponseBody().write(error);
+                exchange.close();
+                return;
+            }
+            String submissions = requestedTokens.stream()
+                    .map(token -> """
+                            {
+                              "token": "%s",
+                              "status": { "id": 3, "description": "Accepted" },
+                              "time": "0.01",
+                              "memory": 512,
+                              "stderr": null,
+                              "compile_output": null,
+                              "message": null
+                            }
+                            """.formatted(token))
+                    .reduce((left, right) -> left + "," + right)
+                    .orElse("");
+            byte[] body = ("{\"submissions\":[" + submissions + "]}").getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+        RestJudge0Client client = new RestJudge0Client(new Judge0Properties(
+                "http://127.0.0.1:" + server.getAddress().getPort(),
+                "X-Auth-Token",
+                "test-token",
+                5,
+                120,
+                50,
+                true
+        ));
+        List<String> tokens = IntStream.rangeClosed(1, 21)
+                .mapToObj(index -> "token-" + index)
+                .toList();
+
+        List<Judge0SubmissionResult> results = client.fetchBatchResults(tokens);
+
+        assertThat(results).hasSize(21);
+        assertThat(callCount).hasValue(2);
+        assertThat(requestedSizes).containsExactly(20, 1);
+    }
+
+    private String extractTokens(String query) {
+        if (query == null || query.isBlank()) {
+            return "";
+        }
+        for (String parameter : query.split("&")) {
+            if (parameter.startsWith("tokens=")) {
+                return parameter.substring("tokens=".length());
+            }
+        }
+        return "";
     }
 }
