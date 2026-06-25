@@ -91,6 +91,7 @@ jobs:
           GOOGLE_OAUTH_CLIENT_SECRET=${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
           KAKAO_REST_API_KEY=${{ vars.KAKAO_REST_API_KEY }}
           KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}
+          OAUTH2_REDIRECT_URI=${{ vars.OAUTH2_REDIRECT_URI || 'https://lyl.kro.kr/api/login/oauth2/code/{registrationId}' }}
           OAUTH2_SUCCESS_REDIRECT_URI=${{ vars.OAUTH2_SUCCESS_REDIRECT_URI || 'https://lyl.kro.kr/oauth/callback' }}
           OAUTH2_FAILURE_REDIRECT_URI=${{ vars.OAUTH2_FAILURE_REDIRECT_URI || 'https://lyl.kro.kr/login' }}
           PROBLEM_BANK_ENABLED=${{ vars.PROBLEM_BANK_ENABLED || 'true' }}
