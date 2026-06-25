@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import lombok.Getter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -13,6 +14,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)
 public abstract class BaseEntity {
+
+    private static final ZoneId SERVICE_ZONE = ZoneId.of("Asia/Seoul");
 
     @CreatedDate
     @Column(nullable = false, updatable = false)
@@ -27,7 +30,7 @@ public abstract class BaseEntity {
 
     public void delete() {
         if (this.deletedAt == null) {
-            this.deletedAt = LocalDateTime.now();
+            this.deletedAt = LocalDateTime.now(SERVICE_ZONE);
         }
     }
 

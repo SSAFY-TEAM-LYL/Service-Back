@@ -23,6 +23,8 @@ import com.lyl.presentation.board.dto.BoardPostSummaryResponse;
 import com.lyl.presentation.board.dto.BoardPostUpdateRequest;
 import com.lyl.presentation.common.CursorPageResponse;
 import jakarta.persistence.EntityManager;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -94,6 +96,18 @@ class BoardServiceTest {
         );
 
         assertThat(response.category()).isEqualTo(BoardCategory.NOTICE);
+    }
+
+    @Test
+    void createPostReturnsServiceZoneDate() {
+        Member author = saveMember("post-date-author@example.com", "postDateAuthor");
+
+        BoardPostResponse response = boardService.createPost(
+                new BoardPostCreateRequest(BoardCategory.FREE, "today", "content"),
+                author.getId()
+        );
+
+        assertThat(response.date()).isEqualTo(LocalDate.now(ZoneId.of("Asia/Seoul")).toString());
     }
 
     @Test

@@ -30,6 +30,7 @@ import com.lyl.presentation.submission.dto.SubmissionReviewResponse;
 import com.lyl.presentation.submission.dto.SubmissionReviewUpdateRequest;
 import com.lyl.presentation.submission.dto.SubmissionUpdateRequest;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,7 @@ public class SubmissionService {
     private static final int MAX_PAGE_SIZE = 50;
     private static final int DEFAULT_TIME_LIMIT_MS = 1000;
     private static final String JUDGING_TIMEOUT_MESSAGE = "채점 서버 응답 시간이 초과되었습니다.";
+    private static final ZoneId SERVICE_ZONE = ZoneId.of("Asia/Seoul");
 
     private final MemberRepository memberRepository;
     private final ProblemPublicationRepository problemPublicationRepository;
@@ -268,7 +270,7 @@ public class SubmissionService {
         return submission.getSubmittedAt() != null
                 && !submission.getSubmittedAt()
                         .plusSeconds(judge0Properties.judgingTimeoutSeconds())
-                        .isAfter(LocalDateTime.now());
+                        .isAfter(LocalDateTime.now(SERVICE_ZONE));
     }
 
     private void submitToJudge(

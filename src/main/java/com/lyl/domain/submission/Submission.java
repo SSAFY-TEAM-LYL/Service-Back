@@ -17,6 +17,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -29,6 +30,8 @@ import lombok.NoArgsConstructor;
 @Table(name = "submissions")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Submission extends BaseEntity {
+
+    private static final ZoneId SERVICE_ZONE = ZoneId.of("Asia/Seoul");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -88,7 +91,7 @@ public class Submission extends BaseEntity {
         this.status = SubmissionStatus.PENDING;
         this.totalTestCount = totalTestCount;
         this.passedTestCount = 0;
-        this.submittedAt = LocalDateTime.now();
+        this.submittedAt = now();
     }
 
     public void addTestCaseResult(SubmissionTestCaseResult result) {
@@ -103,7 +106,7 @@ public class Submission extends BaseEntity {
     public void markInternalError(String message) {
         this.status = SubmissionStatus.INTERNAL_ERROR;
         this.errorMessage = message;
-        this.judgedAt = LocalDateTime.now();
+        this.judgedAt = now();
     }
 
     public void markJudgingTimedOut(String message) {
@@ -153,7 +156,7 @@ public class Submission extends BaseEntity {
                             this.errorMessage = null;
                         }
                 );
-        this.judgedAt = LocalDateTime.now();
+        this.judgedAt = now();
     }
 
     public boolean isInProgress() {
@@ -170,12 +173,16 @@ public class Submission extends BaseEntity {
         this.maxMemoryKb = null;
         this.firstFailedCaseSeq = null;
         this.errorMessage = null;
-        this.submittedAt = LocalDateTime.now();
+        this.submittedAt = now();
         this.judgedAt = null;
         this.testCaseResults.clear();
     }
 
     public boolean isWrittenBy(Long memberId) {
         return member.getId().equals(memberId);
+    }
+
+    private LocalDateTime now() {
+        return LocalDateTime.now(SERVICE_ZONE);
     }
 }

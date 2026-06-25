@@ -179,7 +179,11 @@ class SubmissionServiceTest {
                 member.getId()
         );
         com.lyl.domain.submission.Submission submission = submissionRepository.findById(created.id()).orElseThrow();
-        ReflectionTestUtils.setField(submission, "submittedAt", LocalDateTime.now().minusSeconds(180));
+        ReflectionTestUtils.setField(
+                submission,
+                "submittedAt",
+                LocalDateTime.now(ZoneId.of("Asia/Seoul")).minusSeconds(180)
+        );
         submissionRepository.save(submission);
 
         submissionService.refreshInProgressSubmissions(20);
