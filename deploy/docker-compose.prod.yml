@@ -23,6 +23,25 @@ services:
       retries: 10
       start_period: 30s
 
+  problem-bank-proxy:
+    image: ${FLYCTL_IMAGE:-flyio/flyctl:latest}
+    container_name: lyl-problem-bank-proxy
+    restart: unless-stopped
+    env_file:
+      - ${BACKEND_ENV_FILE:-.env}
+    entrypoint:
+      - /flyctl
+    command:
+      - mpg
+      - proxy
+      - ${PROBLEM_BANK_CLUSTER_ID:-w867508gn9nr3pk4}
+      - --bind-addr
+      - 0.0.0.0
+      - --local-port
+      - "${PROBLEM_BANK_PROXY_PORT:-16380}"
+    expose:
+      - "${PROBLEM_BANK_PROXY_PORT:-16380}"
+
   backend:
     image: ${BACKEND_IMAGE}
     container_name: lyl-backend
@@ -30,6 +49,8 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      problem-bank-proxy:
+        condition: service_started
     ports:
       - "8080:8080"
     env_file:

@@ -94,9 +94,13 @@ jobs:
           OAUTH2_REDIRECT_URI=${{ vars.OAUTH2_REDIRECT_URI || 'https://lyl.kro.kr/api/login/oauth2/code/{registrationId}' }}
           OAUTH2_SUCCESS_REDIRECT_URI=${{ vars.OAUTH2_SUCCESS_REDIRECT_URI || 'https://lyl.kro.kr/oauth/callback' }}
           OAUTH2_FAILURE_REDIRECT_URI=${{ vars.OAUTH2_FAILURE_REDIRECT_URI || 'https://lyl.kro.kr/login' }}
+          FLYCTL_IMAGE=${{ vars.FLYCTL_IMAGE || 'flyio/flyctl:latest' }}
+          FLY_API_TOKEN=${{ secrets.FLY_API_TOKEN }}
+          PROBLEM_BANK_CLUSTER_ID=${{ vars.PROBLEM_BANK_CLUSTER_ID || 'w867508gn9nr3pk4' }}
+          PROBLEM_BANK_PROXY_PORT=${{ vars.PROBLEM_BANK_PROXY_PORT || '16380' }}
           PROBLEM_BANK_ENABLED=${{ vars.PROBLEM_BANK_ENABLED || 'true' }}
-          PROBLEM_BANK_DB_URL=${{ vars.PROBLEM_BANK_DB_URL }}
-          PROBLEM_BANK_DB_USERNAME=${{ vars.PROBLEM_BANK_DB_USERNAME }}
+          PROBLEM_BANK_DB_URL=${{ vars.PROBLEM_BANK_DB_URL || 'jdbc:postgresql://problem-bank-proxy:16380/fly-db?sslmode=disable' }}
+          PROBLEM_BANK_DB_USERNAME=${{ vars.PROBLEM_BANK_DB_USERNAME || 'backend_ro' }}
           PROBLEM_BANK_DB_PASSWORD=${{ secrets.PROBLEM_BANK_DB_PASSWORD }}
           JUDGE0_ENABLED=${{ vars.JUDGE0_ENABLED || 'true' }}
           JUDGE0_BASE_URL=${{ vars.JUDGE0_BASE_URL }}
@@ -108,7 +112,7 @@ jobs:
           ENV_FILE
 
           printf '%s' '${{ secrets.GHCR_TOKEN || github.token }}' | docker login ghcr.io -u '${{ vars.GHCR_USERNAME || github.actor }}' --password-stdin
-          docker compose pull backend
+          docker compose pull backend problem-bank-proxy
           docker compose up -d
           docker image prune -f
           REMOTE_SCRIPT
